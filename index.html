@@ -9,7 +9,7 @@
       content="منشئ دعوات لاروميوس: صمّم بطاقة دعوة عربية فاخرة ونزّلها كصورة عالية الدقة."
     />
     <title>Laromious Invitation Studio</title>
-    <link rel="stylesheet" href="styles.css?v=20261108-2" />
+    <link rel="stylesheet" href="styles.css?v=20261108-3" />
   </head>
   <body>
     <div class="app-shell">
@@ -227,8 +227,14 @@
                 </div>
 
                 <fieldset class="style-fieldset">
-                  <legend data-i18n="fontLabel">الخط</legend>
-                  <div class="font-options" id="fontOptions"></div>
+                  <legend data-i18n="nameFontLabel">خط اسم المدعو</legend>
+                  <div class="font-options" id="nameFontOptions"></div>
+                </fieldset>
+
+                <fieldset class="style-fieldset" aria-describedby="textFontHint">
+                  <legend data-i18n="textFontLabel">خط نص الدعوة</legend>
+                  <p class="field-hint font-hint" id="textFontHint" data-i18n="textFontHint">لرسالة الدعوة والعنوان وباقي النصوص في البطاقة.</p>
+                  <div class="font-options" id="textFontOptions"></div>
                 </fieldset>
 
                 <div class="editor-actions">
@@ -353,6 +359,6 @@
       </div>
     </div>
 
-    <script src="script.js?v=20261108-2"></script>
+    <script src="script.js?v=20261108-3"></script>
   </body>
 </html>

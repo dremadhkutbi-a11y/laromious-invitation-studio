@@ -736,6 +736,10 @@ textarea:focus-visible {
   outline-offset: 2px;
 }
 
+.font-hint {
+  margin: -3px 0 9px;
+}
+
 .font-options {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
@@ -1142,7 +1146,7 @@ textarea:focus-visible {
 
 .card-title {
   position: absolute;
-  top: 31%;
+  top: var(--title-top, 31%);
   left: 5%;
   width: 90%;
   max-width: none;
@@ -1176,31 +1180,37 @@ textarea:focus-visible {
   white-space: pre;
 }
 
+/* Each invitee line is positioned by script.js (computeCardLayout) from the
+   measured name, so deep strokes are never clipped and match the PNG. */
 .invitee-block {
   position: absolute;
-  top: 13%;
-  left: 0;
-  width: 100%;
-  height: 15%;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  min-height: 0;
+  inset: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
 .invitee-prelude,
+.invitee-name,
 .invitee-followup {
+  position: absolute;
+  inset-inline: 0;
   margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.invitee-prelude,
+.invitee-followup {
   color: #171717;
-  font-size: 2.35cqw;
+  font-size: 2.222cqw; /* 24px of the 1080px export */
   font-weight: 400;
+  line-height: 1.5;
 }
 
 .invitee-prelude {
   display: none;
+  top: var(--prelude-top, 13%);
 }
 
 .invitee-block.is-greeting .invitee-prelude {
@@ -1208,23 +1218,18 @@ textarea:focus-visible {
 }
 
 .invitee-name {
-  max-width: 92%;
-  margin: 0.8% auto;
+  top: var(--name-top, 17%);
   color: #171717;
-  font-family: var(--font-card);
+  font-family: var(--font-name, var(--font-card));
   font-size: var(--name-size, 6.25cqw);
   font-weight: 400;
   letter-spacing: -0.018em;
-  line-height: 1.08;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .invitee-followup {
   display: none;
+  top: var(--followup-top, 26%);
   color: #3d3d3d;
   font-weight: 500;
 }

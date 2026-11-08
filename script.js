@@ -35,7 +35,9 @@ const COPY = {
     photoUpload: "رفع صورة",
     photoReset: "الصورة الافتراضية",
     photoError: "تعذر فتح الصورة. اختر ملف PNG أو JPG أو WebP.",
-    fontLabel: "الخط",
+    nameFontLabel: "خط اسم المدعو",
+    textFontLabel: "خط نص الدعوة",
+    textFontHint: "لرسالة الدعوة والعنوان وباقي النصوص في البطاقة.",
     fontDefault: "الافتراضي",
     previewButton: "عرض البطاقة",
     downloadButton: "إنشاء وتنزيل الدعوة",
@@ -102,7 +104,9 @@ const COPY = {
     photoUpload: "Upload photo",
     photoReset: "Use default photo",
     photoError: "That file couldn't be opened. Choose a PNG, JPG or WebP image.",
-    fontLabel: "Font",
+    nameFontLabel: "Guest name font",
+    textFontLabel: "Invitation text font",
+    textFontHint: "Used for the message, the title and the rest of the card text.",
     fontDefault: "Default",
     previewButton: "Preview invitation",
     downloadButton: "Create and download",
@@ -154,8 +158,11 @@ const CARD_FONTS = [
   { id: "el-messiri", family: "El Messiri" },
   { id: "amiri", family: "Amiri" },
 ];
-const FONT_STORAGE_KEY = "laromious.cardFont";
 const FONT_SAMPLE = "دعوة خاصة";
+const FONT_PICKERS = {
+  nameFont: { containerId: "nameFontOptions", storageKey: "laromious.nameFont", sample: "اسم المدعو" },
+  textFont: { containerId: "textFontOptions", storageKey: "laromious.textFont", sample: FONT_SAMPLE },
+};
 
 // Card geometry in output pixels. The live card draws the same layout in
 // container-query units (100cqw = OUTPUT_WIDTH), so the preview and the PNG
@@ -163,6 +170,19 @@ const FONT_SAMPLE = "دعوة خاصة";
 const CARD_BODY_TOP = OUTPUT_HEIGHT * 0.47;
 const CARD_BODY_HEIGHT = OUTPUT_HEIGHT - CARD_BODY_TOP;
 const NAME_MAX_WIDTH = 880;
+// Long names shrink down to 22px so even an 80-character name stays on one line.
+const NAME_SIZES = { max: 68, min: 22 };
+const NAME_LINE_HEIGHT = 1.2;
+// Vertical centres (canvas textBaseline "middle") of the invitee lines.
+const NAME_MIDDLE = { standalone: 1104, greeting: 1124 };
+const GREETING_SIZE = 24;
+const GREETING_LINE_HEIGHT = 1.5;
+const PRELUDE_MIDDLE = 1047;
+const FOLLOWUP_MIDDLE = 1173;
+// Space kept under the lowest stroke of the name; some fonts (Amiri's final ى)
+// draw deep tails that would otherwise run into the next line.
+const NAME_CLEARANCE = 10;
+const NAME_TO_TITLE = 20;
 const TITLE_MAX_WIDTH = 900;
 const TITLE_TOP = CARD_BODY_TOP + CARD_BODY_HEIGHT * 0.31;
 const TITLE_LINE_HEIGHT = 1.28;
@@ -186,7 +206,8 @@ const state = {
   eventTime: "",
   guestName: "",
   nameStyle: "standalone",
-  font: "default",
+  nameFont: "default",
+  textFont: "default",
   photoName: "",
 };
 
@@ -221,7 +242,6 @@ const refs = {
   toastMessage: document.getElementById("toastMessage"),
   heroImage: document.querySelector(".hero-photo"),
   logoImage: document.querySelector(".logo-plaque img"),
-  fontOptions: document.getElementById("fontOptions"),
   photoInput: document.getElementById("photoInput"),
   photoUploadButton: document.getElementById("photoUploadButton"),
   photoResetButton: document.getElementById("photoResetButton"),
@@ -240,64 +260,74 @@ function fontStack(font) {
   return font.family ? `"${font.family}", ${FALLBACK_FONT_STACK}` : FALLBACK_FONT_STACK;
 }
 
-function currentCardFont() {
-  return CARD_FONTS.find((font) => font.id === state.font) || CARD_FONTS[0];
+function findFont(fontId) {
+  return CARD_FONTS.find((font) => font.id === fontId) || CARD_FONTS[0];
 }
 
-function cardFont() {
-  return fontStack(currentCardFont());
+// The guest name and the rest of the card text each have their own font.
+function nameFont() {
+  return fontStack(findFont(state.nameFont));
 }
 
-function readSavedFont() {
+function textFont() {
+  return fontStack(findFont(state.textFont));
+}
+
+function readSavedFont(kind) {
   try {
-    const saved = window.localStorage.getItem(FONT_STORAGE_KEY);
+    const saved = window.localStorage.getItem(FONT_PICKERS[kind].storageKey);
     return CARD_FONTS.some((font) => font.id === saved) ? saved : "default";
   } catch (error) {
     return "default";
   }
 }
 
-function saveFont(fontId) {
+function saveFont(kind, fontId) {
   try {
-    window.localStorage.setItem(FONT_STORAGE_KEY, fontId);
+    window.localStorage.setItem(FONT_PICKERS[kind].storageKey, fontId);
   } catch (error) {
     // Private browsing can block storage; the choice still applies for this visit.
   }
 }
 
 // Canvas text does not wait for web fonts, so measure and draw only once the
-// chosen family (Arabic and Latin files) has loaded.
-function loadCardFont(font = currentCardFont()) {
+// chosen families (Arabic and Latin files) have loaded.
+function loadFont(font) {
   if (!font.family || !document.fonts?.load) return Promise.resolve();
   const spec = `400 32px "${font.family}"`;
   return Promise.all([document.fonts.load(spec, FONT_SAMPLE), document.fonts.load(spec, "Aa")]).catch(() => {});
 }
 
-async function selectFont(fontId) {
-  state.font = fontId;
-  saveFont(fontId);
-  markPreviewStale();
-  await loadCardFont();
-  if (state.font === fontId) updatePreview();
+function loadSelectedFonts() {
+  return Promise.all([loadFont(findFont(state.nameFont)), loadFont(findFont(state.textFont))]);
 }
 
-function renderFontOptions() {
+async function selectFont(kind, fontId) {
+  state[kind] = fontId;
+  saveFont(kind, fontId);
+  markPreviewStale();
+  await loadSelectedFonts();
+  if (state[kind] === fontId) updatePreview();
+}
+
+function renderFontOptions(kind) {
+  const picker = FONT_PICKERS[kind];
   const options = CARD_FONTS.map((font) => {
     const option = document.createElement("label");
     option.className = "font-option";
 
     const input = document.createElement("input");
     input.type = "radio";
-    input.name = "cardFont";
+    input.name = kind;
     input.value = font.id;
-    input.checked = font.id === state.font;
-    input.addEventListener("change", () => selectFont(font.id));
+    input.checked = font.id === state[kind];
+    input.addEventListener("change", () => selectFont(kind, font.id));
 
     const sample = document.createElement("span");
     sample.className = "font-option-sample";
     sample.setAttribute("aria-hidden", "true");
     sample.style.setProperty("--option-font", fontStack(font));
-    sample.textContent = FONT_SAMPLE;
+    sample.textContent = picker.sample;
 
     const name = document.createElement("span");
     name.className = "font-option-name";
@@ -315,7 +345,7 @@ function renderFontOptions() {
     option.append(input, sample, name, mark);
     return option;
   });
-  refs.fontOptions.replaceChildren(...options);
+  document.getElementById(picker.containerId).replaceChildren(...options);
 }
 
 function updatePhotoLabel() {
@@ -480,20 +510,40 @@ function computeCardLayout() {
   const title = state.eventTitle.trim() || COPY.ar.previewTitle;
   const description = state.eventDescription.trim() || COPY.ar.previewDescription;
 
-  const nameSize = fitSingleLine(ctx, guestName, NAME_MAX_WIDTH, 68, 31);
+  const greeting = state.nameStyle === "greeting";
+  const nameSize = fitSingleLine(ctx, guestName, NAME_MAX_WIDTH, NAME_SIZES.max, NAME_SIZES.min, 400, nameFont());
+  const nameMiddle = greeting ? NAME_MIDDLE.greeting : NAME_MIDDLE.standalone;
+  ctx.font = `400 ${nameSize}px ${nameFont()}`;
+  ctx.textBaseline = "middle";
+  const nameInkBottom = nameMiddle + ctx.measureText(guestName).actualBoundingBoxDescent;
+  ctx.textBaseline = "alphabetic";
+  const followupMiddle = Math.max(FOLLOWUP_MIDDLE, nameInkBottom + NAME_CLEARANCE + GREETING_SIZE / 2);
+  const inviteeBottom = greeting ? followupMiddle + GREETING_SIZE / 2 : nameInkBottom;
+
+  const titleTop = Math.max(TITLE_TOP, inviteeBottom + NAME_TO_TITLE);
   const titleFit = fitArabicParagraph(ctx, title, TITLE_MAX_WIDTH, 37, 22, 2, 400);
-  const descriptionTop = TITLE_TOP + titleFit.lines.length * titleFit.size * TITLE_LINE_HEIGHT + TITLE_TO_DESCRIPTION;
+  const descriptionTop = titleTop + titleFit.lines.length * titleFit.size * TITLE_LINE_HEIGHT + TITLE_TO_DESCRIPTION;
   const descriptionFit = fitDescription(ctx, description, descriptionTop);
   const descriptionBottom = descriptionTop + descriptionFit.lines.length * descriptionFit.size * DESCRIPTION_LINE_HEIGHT;
   const detailsTop = Math.max(DETAILS_TOP, descriptionBottom + DESCRIPTION_TO_DETAILS);
 
-  return { guestName, nameSize, titleFit, descriptionTop, descriptionFit, detailsTop };
+  return { guestName, nameSize, nameMiddle, followupMiddle, titleTop, titleFit, descriptionTop, descriptionFit, detailsTop };
+}
+
+// Top of a DOM line box whose centre sits where the canvas draws that line.
+function lineTop(middle, size, lineHeight) {
+  return toCardUnits(middle - (size * lineHeight) / 2 - CARD_BODY_TOP);
 }
 
 function applyLayoutToPreview(layout) {
   const card = refs.preview.style;
-  card.setProperty("--font-card", cardFont());
+  card.setProperty("--font-card", textFont());
+  card.setProperty("--font-name", nameFont());
   card.setProperty("--name-size", toCardUnits(layout.nameSize));
+  card.setProperty("--name-top", lineTop(layout.nameMiddle, layout.nameSize, NAME_LINE_HEIGHT));
+  card.setProperty("--prelude-top", lineTop(PRELUDE_MIDDLE, GREETING_SIZE, GREETING_LINE_HEIGHT));
+  card.setProperty("--followup-top", lineTop(layout.followupMiddle, GREETING_SIZE, GREETING_LINE_HEIGHT));
+  card.setProperty("--title-top", toCardUnits(layout.titleTop - CARD_BODY_TOP));
   card.setProperty("--title-size", toCardUnits(layout.titleFit.size));
   card.setProperty("--description-size", toCardUnits(layout.descriptionFit.size));
   card.setProperty("--description-top", toCardUnits(layout.descriptionTop - CARD_BODY_TOP));
@@ -664,7 +714,7 @@ function validateForm() {
 }
 
 function getArabicTextLines(ctx, text, maxWidth, fontSize, fontWeight = 500, maxLines = 4) {
-  ctx.font = `${fontWeight} ${fontSize}px ${cardFont()}`;
+  ctx.font = `${fontWeight} ${fontSize}px ${textFont()}`;
   ctx.direction = "rtl";
   const words = String(text || "").trim().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
@@ -723,7 +773,7 @@ function drawRoundedImage(ctx, image, x, y, width, height, radius, positionX, po
   ctx.restore();
 }
 
-function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400, fontFamily = cardFont()) {
+function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400, fontFamily = textFont()) {
   let size = startSize;
   ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
   while (size > minSize && ctx.measureText(text).width > maxWidth) {
@@ -734,7 +784,7 @@ function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400
 }
 
 function drawFittedCentered(ctx, text, x, y, maxWidth, startSize, minSize, fontWeight = 700, family = "system") {
-  const fontFamily = family === "serif" ? 'Georgia, "Times New Roman", serif' : cardFont();
+  const fontFamily = family === "serif" ? 'Georgia, "Times New Roman", serif' : textFont();
   const size = fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight, fontFamily);
   ctx.textAlign = "center";
   ctx.direction = "rtl";
@@ -747,7 +797,7 @@ function drawInvitationCanvas() {
   canvas.width = OUTPUT_WIDTH;
   canvas.height = OUTPUT_HEIGHT;
   const ctx = canvas.getContext("2d");
-  const family = cardFont();
+  const family = textFont();
   const layout = computeCardLayout();
   const ink = "#171717";
   const muted = "#9fa4a9";
@@ -777,31 +827,27 @@ function drawInvitationCanvas() {
   ctx.direction = "rtl";
   ctx.fillText("دعوة خاصة", 540, 1016);
 
-  if (state.nameStyle === "greeting") {
-    ctx.fillStyle = ink;
-    ctx.font = `400 24px ${family}`;
-    ctx.fillText("ضيفنا الكريم", 540, 1054);
-  }
-  ctx.fillStyle = state.guestName.trim() ? ink : muted;
-  ctx.font = `400 ${layout.nameSize}px ${family}`;
-  ctx.fillText(layout.guestName, 540, state.nameStyle === "greeting" ? 1144 : 1124);
-  if (state.nameStyle === "greeting") {
-    ctx.fillStyle = "#3d3d3d";
-    ctx.font = `500 24px ${family}`;
-    ctx.fillText("يسعدنا حضورك", 540, 1180);
-  }
-
-  // Title and message lines are centred in the same line boxes the live card uses.
-  const drawLines = (fit, top, lineHeight, color) => {
-    const step = fit.size * lineHeight;
+  // Every line below is centred in the same line box the live card uses.
+  const drawCentered = (text, middle, size, weight, color, fontFamily = family) => {
     ctx.fillStyle = color;
-    ctx.font = `400 ${fit.size}px ${family}`;
+    ctx.font = `${weight} ${size}px ${fontFamily}`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    fit.lines.forEach((textLine, index) => ctx.fillText(textLine, 540, top + (index + 0.5) * step));
+    ctx.fillText(text, 540, middle);
     ctx.textBaseline = "alphabetic";
   };
-  drawLines(layout.titleFit, TITLE_TOP, TITLE_LINE_HEIGHT, state.eventTitle.trim() ? ink : muted);
+  const drawLines = (fit, top, lineHeight, color) => {
+    const step = fit.size * lineHeight;
+    fit.lines.forEach((textLine, index) => drawCentered(textLine, top + (index + 0.5) * step, fit.size, 400, color));
+  };
+
+  if (state.nameStyle === "greeting") {
+    drawCentered("ضيفنا الكريم", PRELUDE_MIDDLE, GREETING_SIZE, 400, ink);
+    drawCentered("يسعدنا حضورك", layout.followupMiddle, GREETING_SIZE, 500, "#3d3d3d");
+  }
+  drawCentered(layout.guestName, layout.nameMiddle, layout.nameSize, 400, state.guestName.trim() ? ink : muted, nameFont());
+
+  drawLines(layout.titleFit, layout.titleTop, TITLE_LINE_HEIGHT, state.eventTitle.trim() ? ink : muted);
   drawLines(layout.descriptionFit, layout.descriptionTop, DESCRIPTION_LINE_HEIGHT, state.eventDescription.trim() ? ink : muted);
 
   const detailsTop = layout.detailsTop;
@@ -897,7 +943,7 @@ async function ensureImagesReady() {
 }
 
 async function downloadInvitation() {
-  await loadCardFont();
+  await loadSelectedFonts();
   const canvas = drawInvitationCanvas();
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("No image blob");
@@ -1059,9 +1105,11 @@ function bindEvents() {
   });
 }
 
-state.font = readSavedFont();
-renderFontOptions();
+Object.keys(FONT_PICKERS).forEach((kind) => {
+  state[kind] = readSavedFont(kind);
+  renderFontOptions(kind);
+});
 bindEvents();
 updateInterfaceLanguage();
 // Re-measure once the saved font has loaded; the first pass used fallback metrics.
-loadCardFont().then(updatePreview);
+loadSelectedFonts().then(updatePreview);
