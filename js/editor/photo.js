@@ -12,6 +12,7 @@ import { t } from "../i18n/index.js";
 export function createPhotoPicker({ input, uploadButton, resetButton, thumbnail, nameLabel, defaultSource, onChange, onError }) {
   const acceptedTypes = input.accept.split(",").map((type) => type.trim());
   let uploaded = null; // { url, name } while a custom photo is in use
+  let fallback = defaultSource;
 
   function refresh() {
     nameLabel.textContent = uploaded?.name ?? t("photoDefault");
@@ -48,8 +49,20 @@ export function createPhotoPicker({ input, uploadButton, resetButton, thumbnail,
     if (uploaded) URL.revokeObjectURL(uploaded.url);
     uploaded = null;
     input.value = "";
-    show(defaultSource);
+    show(fallback);
     uploadButton.focus();
+  }
+
+  /**
+   * A new default photo (another design's), shown at once unless an upload is in use.
+   * Returns whether the shown photo changed.
+   */
+  function setDefault(source) {
+    if (source === fallback) return false;
+    fallback = source;
+    if (uploaded) return false;
+    show(source);
+    return true;
   }
 
   uploadButton.addEventListener("click", () => input.click());
@@ -57,5 +70,5 @@ export function createPhotoPicker({ input, uploadButton, resetButton, thumbnail,
   resetButton.addEventListener("click", useDefault);
   refresh();
 
-  return { refresh };
+  return { refresh, setDefault };
 }

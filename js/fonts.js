@@ -1,7 +1,8 @@
 /**
  * The fonts offered for the card. Each family is self-hosted under assets/fonts
  * and declared in css/fonts.css, split into an Arabic and a Latin file.
- * "default" uses the platform's Arabic system fonts.
+ * "default" uses the platform's Arabic system fonts. `weights` lists the faces
+ * a family ships when it has more than the regular one.
  */
 const SYSTEM_STACK = '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
 
@@ -22,7 +23,7 @@ export const FONTS = Object.freeze([
   { id: "mada", family: "Mada", group: "modern" },
   { id: "beiruti", family: "Beiruti", group: "modern" },
   { id: "amiri", family: "Amiri", group: "classic" },
-  { id: "el-messiri", family: "El Messiri", group: "classic" },
+  { id: "el-messiri", family: "El Messiri", group: "classic", weights: [400, 600] },
   { id: "aref-ruqaa", family: "Aref Ruqaa", group: "classic" },
   { id: "markazi-text", family: "Markazi Text", group: "classic" },
   { id: "noto-naskh-arabic", family: "Noto Naskh Arabic", group: "classic" },
@@ -54,8 +55,14 @@ export function fontStack(font) {
 export function loadFonts(...fonts) {
   const loads = fonts
     .filter((font) => font.family && document.fonts?.load)
-    .flatMap((font) => SUBSET_PROBES.map((probe) => document.fonts.load(`400 32px "${font.family}"`, probe)));
+    .flatMap((font) =>
+      fontWeights(font).flatMap((weight) => SUBSET_PROBES.map((probe) => document.fonts.load(`${weight} 32px "${font.family}"`, probe))),
+    );
   return Promise.all(loads).catch(() => {});
+}
+
+export function fontWeights(font) {
+  return font.weights ?? [400];
 }
 
 /** Remembers each font choice in this browser. Storage can be blocked (private mode); choices then last one visit. */
