@@ -29,6 +29,14 @@ const COPY = {
     styleStandaloneHint: "اسم بارز وهادئ في منتصف البطاقة",
     styleGreeting: "داخل تحية",
     styleGreetingHint: "يظهر الاسم ضمن عبارة ترحيبية",
+    photoLabel: "صورة الدعوة",
+    photoHint: "PNG أو JPG أو WebP. تبقى الصورة على جهازك.",
+    photoDefault: "الصورة الافتراضية",
+    photoUpload: "رفع صورة",
+    photoReset: "الصورة الافتراضية",
+    photoError: "تعذر فتح الصورة. اختر ملف PNG أو JPG أو WebP.",
+    fontLabel: "الخط",
+    fontDefault: "الافتراضي",
     previewButton: "عرض البطاقة",
     downloadButton: "إنشاء وتنزيل الدعوة",
     resetButton: "إعادة تعيين",
@@ -88,6 +96,14 @@ const COPY = {
     styleStandaloneHint: "A quiet, prominent name in the center of the card",
     styleGreeting: "In a greeting",
     styleGreetingHint: "The name appears inside a welcoming phrase",
+    photoLabel: "Invitation photo",
+    photoHint: "PNG, JPG or WebP. The photo stays on your device.",
+    photoDefault: "Default photo",
+    photoUpload: "Upload photo",
+    photoReset: "Use default photo",
+    photoError: "That file couldn't be opened. Choose a PNG, JPG or WebP image.",
+    fontLabel: "Font",
+    fontDefault: "Default",
     previewButton: "Preview invitation",
     downloadButton: "Create and download",
     resetButton: "Reset",
@@ -124,10 +140,26 @@ const OUTPUT_WIDTH = 1080;
 const OUTPUT_HEIGHT = 1920;
 const DESCRIPTION_LIMIT = 360;
 
+// Fonts offered in the editor. Each family is self-hosted in assets/fonts and
+// declared with @font-face in styles.css; "default" keeps the system fonts.
+const FALLBACK_FONT_STACK = '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
+const CARD_FONTS = [
+  { id: "default", family: null },
+  { id: "almarai", family: "Almarai" },
+  { id: "tajawal", family: "Tajawal" },
+  { id: "ibm-plex-sans-arabic", family: "IBM Plex Sans Arabic" },
+  { id: "readex-pro", family: "Readex Pro" },
+  { id: "alexandria", family: "Alexandria" },
+  { id: "noto-kufi-arabic", family: "Noto Kufi Arabic" },
+  { id: "el-messiri", family: "El Messiri" },
+  { id: "amiri", family: "Amiri" },
+];
+const FONT_STORAGE_KEY = "laromious.cardFont";
+const FONT_SAMPLE = "دعوة خاصة";
+
 // Card geometry in output pixels. The live card draws the same layout in
 // container-query units (100cqw = OUTPUT_WIDTH), so the preview and the PNG
 // share one measured text layout and cannot drift apart.
-const CARD_FONT = '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
 const CARD_BODY_TOP = OUTPUT_HEIGHT * 0.47;
 const CARD_BODY_HEIGHT = OUTPUT_HEIGHT - CARD_BODY_TOP;
 const NAME_MAX_WIDTH = 880;
@@ -137,7 +169,8 @@ const TITLE_LINE_HEIGHT = 1.28;
 const TITLE_TO_DESCRIPTION = 31;
 const DESCRIPTION_MAX_WIDTH = 860;
 const DESCRIPTION_LINE_HEIGHT = 1.55;
-const DESCRIPTION_SIZES = { max: 31, min: 20 };
+// Wide families such as Alexandria need 19px to fit a full 360-character message.
+const DESCRIPTION_SIZES = { max: 31, min: 18 };
 const DETAILS_TOP = CARD_BODY_TOP + CARD_BODY_HEIGHT * 0.489;
 const DESCRIPTION_TO_DETAILS = 32;
 // A long message pushes the details row down, but never into the logo.
@@ -153,6 +186,8 @@ const state = {
   eventTime: "",
   guestName: "",
   nameStyle: "standalone",
+  font: "default",
+  photoName: "",
 };
 
 const refs = {
@@ -186,11 +221,146 @@ const refs = {
   toastMessage: document.getElementById("toastMessage"),
   heroImage: document.querySelector(".hero-photo"),
   logoImage: document.querySelector(".logo-plaque img"),
+  fontOptions: document.getElementById("fontOptions"),
+  photoInput: document.getElementById("photoInput"),
+  photoUploadButton: document.getElementById("photoUploadButton"),
+  photoResetButton: document.getElementById("photoResetButton"),
+  photoThumb: document.getElementById("photoThumb"),
+  photoName: document.getElementById("photoName"),
 };
+
+const DEFAULT_HERO_SRC = refs.heroImage.getAttribute("src");
 
 let toastTimer;
 let previewFrame;
 let previewReady = false;
+let customPhotoUrl = null;
+
+function fontStack(font) {
+  return font.family ? `"${font.family}", ${FALLBACK_FONT_STACK}` : FALLBACK_FONT_STACK;
+}
+
+function currentCardFont() {
+  return CARD_FONTS.find((font) => font.id === state.font) || CARD_FONTS[0];
+}
+
+function cardFont() {
+  return fontStack(currentCardFont());
+}
+
+function readSavedFont() {
+  try {
+    const saved = window.localStorage.getItem(FONT_STORAGE_KEY);
+    return CARD_FONTS.some((font) => font.id === saved) ? saved : "default";
+  } catch (error) {
+    return "default";
+  }
+}
+
+function saveFont(fontId) {
+  try {
+    window.localStorage.setItem(FONT_STORAGE_KEY, fontId);
+  } catch (error) {
+    // Private browsing can block storage; the choice still applies for this visit.
+  }
+}
+
+// Canvas text does not wait for web fonts, so measure and draw only once the
+// chosen family (Arabic and Latin files) has loaded.
+function loadCardFont(font = currentCardFont()) {
+  if (!font.family || !document.fonts?.load) return Promise.resolve();
+  const spec = `400 32px "${font.family}"`;
+  return Promise.all([document.fonts.load(spec, FONT_SAMPLE), document.fonts.load(spec, "Aa")]).catch(() => {});
+}
+
+async function selectFont(fontId) {
+  state.font = fontId;
+  saveFont(fontId);
+  markPreviewStale();
+  await loadCardFont();
+  if (state.font === fontId) updatePreview();
+}
+
+function renderFontOptions() {
+  const options = CARD_FONTS.map((font) => {
+    const option = document.createElement("label");
+    option.className = "font-option";
+
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.name = "cardFont";
+    input.value = font.id;
+    input.checked = font.id === state.font;
+    input.addEventListener("change", () => selectFont(font.id));
+
+    const sample = document.createElement("span");
+    sample.className = "font-option-sample";
+    sample.setAttribute("aria-hidden", "true");
+    sample.style.setProperty("--option-font", fontStack(font));
+    sample.textContent = FONT_SAMPLE;
+
+    const name = document.createElement("span");
+    name.className = "font-option-name";
+    if (font.family) {
+      name.textContent = font.family;
+    } else {
+      name.dataset.i18n = "fontDefault";
+      name.textContent = copy("fontDefault");
+    }
+
+    const mark = document.createElement("span");
+    mark.className = "radio-mark";
+    mark.setAttribute("aria-hidden", "true");
+
+    option.append(input, sample, name, mark);
+    return option;
+  });
+  refs.fontOptions.replaceChildren(...options);
+}
+
+function updatePhotoLabel() {
+  refs.photoName.textContent = state.photoName || copy("photoDefault");
+  refs.photoResetButton.hidden = !customPhotoUrl;
+}
+
+function showHeroPhoto(src) {
+  refs.heroImage.src = src;
+  refs.photoThumb.src = src;
+  updatePhotoLabel();
+  markPreviewStale();
+  animatePreview();
+}
+
+function useUploadedPhoto(file) {
+  if (!file) return;
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) {
+    showToast(copy("photoError"));
+    return;
+  }
+  // The photo never leaves the device: it is read through a local object URL.
+  const url = URL.createObjectURL(file);
+  const probe = new Image();
+  probe.onload = () => {
+    if (customPhotoUrl) URL.revokeObjectURL(customPhotoUrl);
+    customPhotoUrl = url;
+    state.photoName = file.name;
+    showHeroPhoto(url);
+  };
+  probe.onerror = () => {
+    URL.revokeObjectURL(url);
+    showToast(copy("photoError"));
+  };
+  probe.src = url;
+}
+
+function useDefaultPhoto() {
+  if (customPhotoUrl) URL.revokeObjectURL(customPhotoUrl);
+  customPhotoUrl = null;
+  state.photoName = "";
+  refs.photoInput.value = "";
+  showHeroPhoto(DEFAULT_HERO_SRC);
+  refs.photoUploadButton.focus();
+}
 
 function copy(key) {
   return COPY[state.lang][key] || COPY.en[key] || key;
@@ -233,6 +403,7 @@ function updateInterfaceLanguage() {
   if (refs.eventTimePicker.value) refs.eventTimeText.value = formatEditorTime(refs.eventTimePicker.value);
 
   refs.descriptionCount.textContent = `${refs.eventDescription.value.length} / ${DESCRIPTION_LIMIT}`;
+  updatePhotoLabel();
   updatePreview();
 }
 
@@ -321,6 +492,7 @@ function computeCardLayout() {
 
 function applyLayoutToPreview(layout) {
   const card = refs.preview.style;
+  card.setProperty("--font-card", cardFont());
   card.setProperty("--name-size", toCardUnits(layout.nameSize));
   card.setProperty("--title-size", toCardUnits(layout.titleFit.size));
   card.setProperty("--description-size", toCardUnits(layout.descriptionFit.size));
@@ -492,7 +664,7 @@ function validateForm() {
 }
 
 function getArabicTextLines(ctx, text, maxWidth, fontSize, fontWeight = 500, maxLines = 4) {
-  ctx.font = `${fontWeight} ${fontSize}px ${CARD_FONT}`;
+  ctx.font = `${fontWeight} ${fontSize}px ${cardFont()}`;
   ctx.direction = "rtl";
   const words = String(text || "").trim().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
@@ -551,7 +723,7 @@ function drawRoundedImage(ctx, image, x, y, width, height, radius, positionX, po
   ctx.restore();
 }
 
-function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400, fontFamily = CARD_FONT) {
+function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400, fontFamily = cardFont()) {
   let size = startSize;
   ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
   while (size > minSize && ctx.measureText(text).width > maxWidth) {
@@ -562,7 +734,7 @@ function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400
 }
 
 function drawFittedCentered(ctx, text, x, y, maxWidth, startSize, minSize, fontWeight = 700, family = "system") {
-  const fontFamily = family === "serif" ? 'Georgia, "Times New Roman", serif' : CARD_FONT;
+  const fontFamily = family === "serif" ? 'Georgia, "Times New Roman", serif' : cardFont();
   const size = fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight, fontFamily);
   ctx.textAlign = "center";
   ctx.direction = "rtl";
@@ -575,7 +747,7 @@ function drawInvitationCanvas() {
   canvas.width = OUTPUT_WIDTH;
   canvas.height = OUTPUT_HEIGHT;
   const ctx = canvas.getContext("2d");
-  const family = CARD_FONT;
+  const family = cardFont();
   const layout = computeCardLayout();
   const ink = "#171717";
   const muted = "#9fa4a9";
@@ -725,6 +897,7 @@ async function ensureImagesReady() {
 }
 
 async function downloadInvitation() {
+  await loadCardFont();
   const canvas = drawInvitationCanvas();
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("No image blob");
@@ -829,6 +1002,10 @@ function bindEvents() {
     });
   });
 
+  refs.photoUploadButton.addEventListener("click", () => refs.photoInput.click());
+  refs.photoInput.addEventListener("change", () => useUploadedPhoto(refs.photoInput.files[0]));
+  refs.photoResetButton.addEventListener("click", useDefaultPhoto);
+
   refs.resetButton.addEventListener("click", resetForm);
 
   refs.previewButton.addEventListener("click", openPreviewDialog);
@@ -882,5 +1059,9 @@ function bindEvents() {
   });
 }
 
+state.font = readSavedFont();
+renderFontOptions();
 bindEvents();
 updateInterfaceLanguage();
+// Re-measure once the saved font has loaded; the first pass used fallback metrics.
+loadCardFont().then(updatePreview);

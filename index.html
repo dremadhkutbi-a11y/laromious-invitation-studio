@@ -9,7 +9,7 @@
       content="منشئ دعوات لاروميوس: صمّم بطاقة دعوة عربية فاخرة ونزّلها كصورة عالية الدقة."
     />
     <title>Laromious Invitation Studio</title>
-    <link rel="stylesheet" href="styles.css?v=20261108-1" />
+    <link rel="stylesheet" href="styles.css?v=20261108-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -205,6 +205,32 @@
                   </div>
                 </fieldset>
 
+                <div class="field-group">
+                  <label for="photoInput" data-i18n="photoLabel">صورة الدعوة</label>
+                  <div class="photo-picker">
+                    <img class="photo-thumb" id="photoThumb" src="assets/wood-room-enhanced.png" alt="" />
+                    <div class="photo-copy">
+                      <p class="photo-name" id="photoName">الصورة الافتراضية</p>
+                      <p class="field-hint" id="photoHint" data-i18n="photoHint">PNG أو JPG أو WebP. تبقى الصورة على جهازك.</p>
+                    </div>
+                    <div class="photo-actions">
+                      <button class="secondary-button" id="photoUploadButton" type="button" aria-describedby="photoHint">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                          <path d="M12 15.5v-11M7.5 8.5 12 4l4.5 4.5M5 19.5h14" />
+                        </svg>
+                        <span data-i18n="photoUpload">رفع صورة</span>
+                      </button>
+                      <button class="text-button" id="photoResetButton" type="button" data-i18n="photoReset" hidden>الصورة الافتراضية</button>
+                    </div>
+                    <input id="photoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+                  </div>
+                </div>
+
+                <fieldset class="style-fieldset">
+                  <legend data-i18n="fontLabel">الخط</legend>
+                  <div class="font-options" id="fontOptions"></div>
+                </fieldset>
+
                 <div class="editor-actions">
                   <button class="secondary-button preview-button" id="previewButton" type="button">
                     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
@@ -327,6 +353,6 @@
       </div>
     </div>
 
-    <script src="script.js?v=20261108-1"></script>
+    <script src="script.js?v=20261108-2"></script>
   </body>
 </html>
