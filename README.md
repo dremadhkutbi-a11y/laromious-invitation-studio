@@ -56,7 +56,7 @@ js/card/                The card: geometry, model, text fitting, layout, both re
 js/editor/              Font pickers, photo upload, form validation
 js/fonts.js             The font catalogue, loading and remembered choices
 js/i18n/                Translation (ar.js holds every Arabic string in the app)
-js/lib/                 Date and time parsing, download file names
+js/lib/                 Date and time parsing, download file names (Arabic)
 tests/                  Unit tests for the DOM-free modules
 scripts/                Release tooling
 ```
@@ -66,8 +66,12 @@ scripts/                Release tooling
 The editor switches between Arabic and English; the card itself is always
 Arabic. Markup only declares keys (`data-i18n`, `data-i18n-placeholder`,
 `data-i18n-label`) and `js/i18n/index.js` fills them in. All Arabic text, from
-interface copy to the card's wording and the transliteration table used for file
-names, lives in `js/i18n/ar.js`.
+interface copy to the card's wording and the word that starts every download's
+file name, lives in `js/i18n/ar.js`.
+
+Downloads are named in Arabic after the guest, exactly as typed (for example
+the Arabic for "Invitation Sara Ali.png"), with only characters that file
+systems reject removed.
 
 ## Fonts
 

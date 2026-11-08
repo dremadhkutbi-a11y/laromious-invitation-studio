@@ -1,10 +1,10 @@
 /**
  * Arabic copy. Every Arabic string in the app lives in this file:
  *
- * - `ui`              the editor interface
- * - `card`            text printed on the invitation (the card is always Arabic)
- * - `time`            words used to read and write 12-hour times
- * - `transliteration` Latin spelling of each letter, for download file names
+ * - `ui`    the editor interface
+ * - `card`  text printed on the invitation (the card is always Arabic)
+ * - `time`  words used to read and write 12-hour times
+ * - `files` names given to downloaded files
  */
 export const ui = {
   brandSubtitle: "استوديو الدعوات",
@@ -103,9 +103,7 @@ export const time = {
   pmPrefix: "مسا",
 };
 
-export const transliteration = {
-  "ا": "a", "أ": "a", "إ": "i", "آ": "a", "ب": "b", "ت": "t", "ث": "th", "ج": "j", "ح": "h",
-  "خ": "kh", "د": "d", "ذ": "dh", "ر": "r", "ز": "z", "س": "s", "ش": "sh", "ص": "s", "ض": "d",
-  "ط": "t", "ظ": "z", "ع": "a", "غ": "gh", "ف": "f", "ق": "q", "ك": "k", "ل": "l", "م": "m",
-  "ن": "n", "ه": "h", "و": "w", "ي": "y", "ى": "a", "ة": "h", "ئ": "y", "ء": "a", "ـ": "",
+export const files = {
+  /** Downloads are saved as "<invitation> <guest name>.png". */
+  invitation: "دعوة",
 };
