@@ -124,6 +124,27 @@ const OUTPUT_WIDTH = 1080;
 const OUTPUT_HEIGHT = 1920;
 const DESCRIPTION_LIMIT = 360;
 
+// Card geometry in output pixels. The live card draws the same layout in
+// container-query units (100cqw = OUTPUT_WIDTH), so the preview and the PNG
+// share one measured text layout and cannot drift apart.
+const CARD_FONT = '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
+const CARD_BODY_TOP = OUTPUT_HEIGHT * 0.47;
+const CARD_BODY_HEIGHT = OUTPUT_HEIGHT - CARD_BODY_TOP;
+const NAME_MAX_WIDTH = 880;
+const TITLE_MAX_WIDTH = 900;
+const TITLE_TOP = CARD_BODY_TOP + CARD_BODY_HEIGHT * 0.31;
+const TITLE_LINE_HEIGHT = 1.28;
+const TITLE_TO_DESCRIPTION = 31;
+const DESCRIPTION_MAX_WIDTH = 860;
+const DESCRIPTION_LINE_HEIGHT = 1.55;
+const DESCRIPTION_SIZES = { max: 31, min: 20 };
+const DETAILS_TOP = CARD_BODY_TOP + CARD_BODY_HEIGHT * 0.489;
+const DESCRIPTION_TO_DETAILS = 32;
+// A long message pushes the details row down, but never into the logo.
+const DETAILS_TOP_MAX = 1530;
+
+const measureContext = document.createElement("canvas").getContext("2d");
+
 const state = {
   lang: "ar",
   eventTitle: "",
@@ -148,6 +169,7 @@ const refs = {
   previewEventTitle: document.getElementById("previewEventTitle"),
   previewDescription: document.getElementById("previewDescription"),
   previewGuestName: document.getElementById("previewGuestName"),
+  previewInviteeBlock: document.getElementById("previewInviteeBlock"),
   previewInviteePrelude: document.getElementById("previewInviteePrelude"),
   previewInviteeFollowup: document.getElementById("previewInviteeFollowup"),
   previewDate: document.getElementById("previewDate"),
@@ -260,21 +282,50 @@ function setPreviewValue(element, value, placeholder) {
   element.classList.toggle("is-placeholder", !hasValue);
 }
 
-function fitLiveGuestName() {
-  const element = refs.previewGuestName;
-  const block = refs.previewInviteeBlock;
-  if (!element || !block) return;
+function setPreviewLines(element, lines, hasValue) {
+  // One DOM line per measured canvas line, so both renderers break text identically.
+  element.textContent = lines.join("\n");
+  element.classList.toggle("is-placeholder", !hasValue);
+}
 
-  element.style.fontSize = "";
-  const startingSize = Number.parseFloat(window.getComputedStyle(element).fontSize) || 30;
-  const minimumSize = Math.max(18, startingSize * 0.54);
-  let size = startingSize;
-  const maxWidth = block.clientWidth * 0.92;
+function toCardUnits(pixels) {
+  return `${((pixels / OUTPUT_WIDTH) * 100).toFixed(3)}cqw`;
+}
 
-  while (size > minimumSize && element.scrollWidth > maxWidth) {
-    size -= 0.5;
-    element.style.fontSize = `${size}px`;
+function fitDescription(ctx, text, top) {
+  const maxBottom = DETAILS_TOP_MAX - DESCRIPTION_TO_DETAILS;
+  for (let size = DESCRIPTION_SIZES.max; size >= DESCRIPTION_SIZES.min; size -= 1) {
+    const lines = getArabicTextLines(ctx, text, DESCRIPTION_MAX_WIDTH, size, 400, Infinity);
+    if (top + lines.length * size * DESCRIPTION_LINE_HEIGHT <= maxBottom) return { size, lines };
   }
+  const size = DESCRIPTION_SIZES.min;
+  const maxLines = Math.max(1, Math.floor((maxBottom - top) / (size * DESCRIPTION_LINE_HEIGHT)));
+  return { size, lines: getArabicTextLines(ctx, text, DESCRIPTION_MAX_WIDTH, size, 400, maxLines) };
+}
+
+function computeCardLayout() {
+  const ctx = measureContext;
+  const guestName = state.guestName.trim() || COPY.ar.previewGuest;
+  const title = state.eventTitle.trim() || COPY.ar.previewTitle;
+  const description = state.eventDescription.trim() || COPY.ar.previewDescription;
+
+  const nameSize = fitSingleLine(ctx, guestName, NAME_MAX_WIDTH, 68, 31);
+  const titleFit = fitArabicParagraph(ctx, title, TITLE_MAX_WIDTH, 37, 22, 2, 400);
+  const descriptionTop = TITLE_TOP + titleFit.lines.length * titleFit.size * TITLE_LINE_HEIGHT + TITLE_TO_DESCRIPTION;
+  const descriptionFit = fitDescription(ctx, description, descriptionTop);
+  const descriptionBottom = descriptionTop + descriptionFit.lines.length * descriptionFit.size * DESCRIPTION_LINE_HEIGHT;
+  const detailsTop = Math.max(DETAILS_TOP, descriptionBottom + DESCRIPTION_TO_DETAILS);
+
+  return { guestName, nameSize, titleFit, descriptionTop, descriptionFit, detailsTop };
+}
+
+function applyLayoutToPreview(layout) {
+  const card = refs.preview.style;
+  card.setProperty("--name-size", toCardUnits(layout.nameSize));
+  card.setProperty("--title-size", toCardUnits(layout.titleFit.size));
+  card.setProperty("--description-size", toCardUnits(layout.descriptionFit.size));
+  card.setProperty("--description-top", toCardUnits(layout.descriptionTop - CARD_BODY_TOP));
+  card.setProperty("--details-top", toCardUnits(layout.detailsTop - CARD_BODY_TOP));
 }
 
 function animatePreview() {
@@ -287,9 +338,11 @@ function animatePreview() {
 }
 
 function updatePreview() {
-  setPreviewValue(refs.previewEventTitle, state.eventTitle, COPY.ar.previewTitle);
-  setPreviewValue(refs.previewDescription, state.eventDescription, COPY.ar.previewDescription);
+  const layout = computeCardLayout();
+  setPreviewLines(refs.previewEventTitle, layout.titleFit.lines, Boolean(state.eventTitle.trim()));
+  setPreviewLines(refs.previewDescription, layout.descriptionFit.lines, Boolean(state.eventDescription.trim()));
   setPreviewValue(refs.previewGuestName, state.guestName, COPY.ar.previewGuest);
+  applyLayoutToPreview(layout);
 
   const parsedDate = parseDateValue(state.eventDate);
   const parsedTime = parseTimeValue(state.eventTime);
@@ -305,8 +358,6 @@ function updatePreview() {
     refs.previewInviteePrelude.textContent = "إلى";
     refs.previewInviteeFollowup.textContent = "";
   }
-
-  fitLiveGuestName();
 
   refs.descriptionCount.textContent = `${refs.eventDescription.value.length} / ${DESCRIPTION_LIMIT}`;
   refs.preview.setAttribute("aria-label", `${state.eventTitle || copy("previewTitle")} — ${state.guestName || copy("previewGuest")}`);
@@ -441,8 +492,7 @@ function validateForm() {
 }
 
 function getArabicTextLines(ctx, text, maxWidth, fontSize, fontWeight = 500, maxLines = 4) {
-  const family = '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
-  ctx.font = `${fontWeight} ${fontSize}px ${family}`;
+  ctx.font = `${fontWeight} ${fontSize}px ${CARD_FONT}`;
   ctx.direction = "rtl";
   const words = String(text || "").trim().split(/\s+/).filter(Boolean);
   if (!words.length) return [];
@@ -501,16 +551,21 @@ function drawRoundedImage(ctx, image, x, y, width, height, radius, positionX, po
   ctx.restore();
 }
 
-function drawFittedCentered(ctx, text, x, y, maxWidth, startSize, minSize, fontWeight = 700, family = "system") {
-  const fontFamily = family === "serif" ? 'Georgia, "Times New Roman", serif' : '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
+function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400, fontFamily = CARD_FONT) {
   let size = startSize;
+  ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
+  while (size > minSize && ctx.measureText(text).width > maxWidth) {
+    size -= 1;
+    ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
+  }
+  return size;
+}
+
+function drawFittedCentered(ctx, text, x, y, maxWidth, startSize, minSize, fontWeight = 700, family = "system") {
+  const fontFamily = family === "serif" ? 'Georgia, "Times New Roman", serif' : CARD_FONT;
+  const size = fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight, fontFamily);
   ctx.textAlign = "center";
   ctx.direction = "rtl";
-  while (size > minSize) {
-    ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
-    if (ctx.measureText(text).width <= maxWidth) break;
-    size -= 1;
-  }
   ctx.fillText(text, x, y);
   return size;
 }
@@ -520,7 +575,8 @@ function drawInvitationCanvas() {
   canvas.width = OUTPUT_WIDTH;
   canvas.height = OUTPUT_HEIGHT;
   const ctx = canvas.getContext("2d");
-  const family = '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
+  const family = CARD_FONT;
+  const layout = computeCardLayout();
   const ink = "#171717";
   const muted = "#9fa4a9";
   const line = "#d5d5d5";
@@ -529,7 +585,7 @@ function drawInvitationCanvas() {
   ctx.fillRect(0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
 
   // Keep the downloaded image aligned with the 47% hero used by the live card.
-  const heroHeight = 902;
+  const heroHeight = Math.round(CARD_BODY_TOP);
   drawCover(ctx, refs.heroImage, 0, 0, OUTPUT_WIDTH, heroHeight, 0.5, 0.4);
   const heroGradient = ctx.createLinearGradient(0, 0, 0, heroHeight);
   heroGradient.addColorStop(0, "rgba(0, 0, 0, 0.01)");
@@ -549,41 +605,39 @@ function drawInvitationCanvas() {
   ctx.direction = "rtl";
   ctx.fillText("دعوة خاصة", 540, 1016);
 
-  const guestName = state.guestName.trim() || COPY.ar.previewGuest;
-  ctx.fillStyle = state.guestName.trim() ? ink : muted;
   if (state.nameStyle === "greeting") {
     ctx.fillStyle = ink;
     ctx.font = `400 24px ${family}`;
     ctx.fillText("ضيفنا الكريم", 540, 1054);
   }
-  drawFittedCentered(ctx, guestName, 540, state.nameStyle === "greeting" ? 1144 : 1124, 880, 68, 31, 400, "arabic");
+  ctx.fillStyle = state.guestName.trim() ? ink : muted;
+  ctx.font = `400 ${layout.nameSize}px ${family}`;
+  ctx.fillText(layout.guestName, 540, state.nameStyle === "greeting" ? 1144 : 1124);
   if (state.nameStyle === "greeting") {
     ctx.fillStyle = "#3d3d3d";
     ctx.font = `500 24px ${family}`;
     ctx.fillText("يسعدنا حضورك", 540, 1180);
   }
 
-  const title = state.eventTitle.trim() || COPY.ar.previewTitle;
-  const titlePlaceholder = !state.eventTitle.trim();
-  ctx.fillStyle = titlePlaceholder ? muted : ink;
-  const titleFit = fitArabicParagraph(ctx, title, 900, 37, 22, 2, 400);
-  ctx.font = `400 ${titleFit.size}px ${family}`;
-  ctx.textAlign = "center";
-  titleFit.lines.forEach((textLine, index) => ctx.fillText(textLine, 540, 1248 + index * (titleFit.size * 1.28)));
+  // Title and message lines are centred in the same line boxes the live card uses.
+  const drawLines = (fit, top, lineHeight, color) => {
+    const step = fit.size * lineHeight;
+    ctx.fillStyle = color;
+    ctx.font = `400 ${fit.size}px ${family}`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    fit.lines.forEach((textLine, index) => ctx.fillText(textLine, 540, top + (index + 0.5) * step));
+    ctx.textBaseline = "alphabetic";
+  };
+  drawLines(layout.titleFit, TITLE_TOP, TITLE_LINE_HEIGHT, state.eventTitle.trim() ? ink : muted);
+  drawLines(layout.descriptionFit, layout.descriptionTop, DESCRIPTION_LINE_HEIGHT, state.eventDescription.trim() ? ink : muted);
 
-  const description = state.eventDescription.trim() || COPY.ar.previewDescription;
-  const descriptionPlaceholder = !state.eventDescription.trim();
-  ctx.fillStyle = descriptionPlaceholder ? muted : ink;
-  const descriptionFit = fitArabicParagraph(ctx, description, 860, 31, 18, 3, 400);
-  ctx.font = `400 ${descriptionFit.size}px ${family}`;
-  ctx.textAlign = "center";
-  descriptionFit.lines.forEach((textLine, index) => ctx.fillText(textLine, 540, 1328 + index * (descriptionFit.size * 1.55)));
-
+  const detailsTop = layout.detailsTop;
   ctx.strokeStyle = line;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(92, 1400);
-  ctx.lineTo(988, 1400);
+  ctx.moveTo(92, detailsTop);
+  ctx.lineTo(988, detailsTop);
   ctx.stroke();
 
   const date = parseDateValue(state.eventDate);
@@ -599,17 +653,17 @@ function drawInvitationCanvas() {
     ctx.strokeStyle = "#c9c9c9";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x, 1435);
-    ctx.lineTo(x, 1545);
+    ctx.moveTo(x, detailsTop + 35);
+    ctx.lineTo(x, detailsTop + 145);
     ctx.stroke();
   });
   columns.forEach((column, index) => {
     ctx.fillStyle = "#333";
     ctx.font = `400 19px ${family}`;
     ctx.textAlign = "center";
-    ctx.fillText(column.label, column.x, 1465);
+    ctx.fillText(column.label, column.x, detailsTop + 65);
     ctx.fillStyle = index < 2 && (!date || !time) ? muted : ink;
-    drawFittedCentered(ctx, column.value, column.x, 1510, 270, 25, 16, 400, "system");
+    drawFittedCentered(ctx, column.value, column.x, detailsTop + 110, 270, 25, 16, 400, "system");
   });
 
   if (refs.logoImage && refs.logoImage.naturalWidth) {

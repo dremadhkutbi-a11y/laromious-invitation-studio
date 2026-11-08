@@ -858,17 +858,19 @@ textarea:focus-visible {
   margin: 0;
   color: #171717;
   font-family: var(--font-card);
-  font-size: 3.45cqw;
+  /* Size, position and line breaks come from script.js (computeCardLayout),
+     the same measurements the PNG export uses. */
+  font-size: var(--title-size, 3.45cqw);
   font-weight: 400;
   letter-spacing: -0.025em;
   line-height: 1.28;
   text-align: center;
-  overflow-wrap: anywhere;
+  white-space: pre;
 }
 
 .card-description {
   position: absolute;
-  top: 38.7%;
+  top: var(--description-top, 38.7%);
   left: 5%;
   width: 90%;
   max-width: none;
@@ -876,10 +878,10 @@ textarea:focus-visible {
   margin: 0;
   color: #171717;
   font-family: var(--font-card);
-  font-size: 2.85cqw;
-  line-height: 1.5;
+  font-size: var(--description-size, 2.85cqw);
+  line-height: 1.55;
   text-align: center;
-  overflow-wrap: anywhere;
+  white-space: pre;
 }
 
 .invitee-block {
@@ -918,7 +920,7 @@ textarea:focus-visible {
   margin: 0.8% auto;
   color: #171717;
   font-family: var(--font-card);
-  font-size: 6.25cqw;
+  font-size: var(--name-size, 6.25cqw);
   font-weight: 400;
   letter-spacing: -0.018em;
   line-height: 1.08;
@@ -941,7 +943,7 @@ textarea:focus-visible {
 
 .event-details {
   position: absolute;
-  top: 48.9%;
+  top: var(--details-top, 48.9%);
   left: 8.6%;
   right: 8.6%;
   display: grid;
