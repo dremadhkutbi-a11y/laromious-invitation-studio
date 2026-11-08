@@ -39,6 +39,9 @@ const COPY = {
     textFontLabel: "خط نص الدعوة",
     textFontHint: "لرسالة الدعوة والعنوان وباقي النصوص في البطاقة.",
     fontDefault: "الافتراضي",
+    fontGroupModern: "حديث",
+    fontGroupClassic: "كلاسيكي",
+    fontGroupDecorative: "زخرفي",
     previewButton: "عرض البطاقة",
     downloadButton: "إنشاء وتنزيل الدعوة",
     resetButton: "إعادة تعيين",
@@ -108,6 +111,9 @@ const COPY = {
     textFontLabel: "Invitation text font",
     textFontHint: "Used for the message, the title and the rest of the card text.",
     fontDefault: "Default",
+    fontGroupModern: "Modern",
+    fontGroupClassic: "Classic",
+    fontGroupDecorative: "Decorative",
     previewButton: "Preview invitation",
     downloadButton: "Create and download",
     resetButton: "Reset",
@@ -147,22 +153,41 @@ const DESCRIPTION_LIMIT = 360;
 // Fonts offered in the editor. Each family is self-hosted in assets/fonts and
 // declared with @font-face in styles.css; "default" keeps the system fonts.
 const FALLBACK_FONT_STACK = '"New Peninim MT", "Nadeem", "Geeza Pro", "SF Arabic", "Noto Sans Arabic", Tahoma, Arial, sans-serif';
+const FONT_GROUPS = ["modern", "classic", "decorative"];
 const CARD_FONTS = [
-  { id: "default", family: null },
-  { id: "almarai", family: "Almarai" },
-  { id: "tajawal", family: "Tajawal" },
-  { id: "ibm-plex-sans-arabic", family: "IBM Plex Sans Arabic" },
-  { id: "readex-pro", family: "Readex Pro" },
-  { id: "alexandria", family: "Alexandria" },
-  { id: "noto-kufi-arabic", family: "Noto Kufi Arabic" },
-  { id: "el-messiri", family: "El Messiri" },
-  { id: "amiri", family: "Amiri" },
+  { id: "default", family: null, group: "modern" },
+  { id: "almarai", family: "Almarai", group: "modern" },
+  { id: "tajawal", family: "Tajawal", group: "modern" },
+  { id: "ibm-plex-sans-arabic", family: "IBM Plex Sans Arabic", group: "modern" },
+  { id: "readex-pro", family: "Readex Pro", group: "modern" },
+  { id: "alexandria", family: "Alexandria", group: "modern" },
+  { id: "noto-kufi-arabic", family: "Noto Kufi Arabic", group: "modern" },
+  { id: "cairo", family: "Cairo", group: "modern" },
+  { id: "changa", family: "Changa", group: "modern" },
+  { id: "rubik", family: "Rubik", group: "modern" },
+  { id: "noto-sans-arabic", family: "Noto Sans Arabic", group: "modern" },
+  { id: "mada", family: "Mada", group: "modern" },
+  { id: "beiruti", family: "Beiruti", group: "modern" },
+  { id: "amiri", family: "Amiri", group: "classic" },
+  { id: "el-messiri", family: "El Messiri", group: "classic" },
+  { id: "aref-ruqaa", family: "Aref Ruqaa", group: "classic" },
+  { id: "markazi-text", family: "Markazi Text", group: "classic" },
+  { id: "noto-naskh-arabic", family: "Noto Naskh Arabic", group: "classic" },
+  { id: "scheherazade-new", family: "Scheherazade New", group: "classic" },
+  { id: "lateef", family: "Lateef", group: "classic" },
+  { id: "reem-kufi", family: "Reem Kufi", group: "classic" },
+  { id: "lalezar", family: "Lalezar", group: "decorative" },
+  { id: "lemonada", family: "Lemonada", group: "decorative" },
+  { id: "marhey", family: "Marhey", group: "decorative" },
+  { id: "kufam", family: "Kufam", group: "decorative" },
+  { id: "rakkas", family: "Rakkas", group: "decorative" },
 ];
 const FONT_SAMPLE = "دعوة خاصة";
 const FONT_PICKERS = {
-  nameFont: { containerId: "nameFontOptions", storageKey: "laromious.nameFont", sample: "اسم المدعو" },
-  textFont: { containerId: "textFontOptions", storageKey: "laromious.textFont", sample: FONT_SAMPLE },
+  nameFont: { containerId: "nameFontOptions", currentId: "nameFontCurrent", storageKey: "laromious.nameFont", sample: "اسم المدعو" },
+  textFont: { containerId: "textFontOptions", currentId: "textFontCurrent", storageKey: "laromious.textFont", sample: FONT_SAMPLE },
 };
+const FONT_GROUP_COPY = { modern: "fontGroupModern", classic: "fontGroupClassic", decorative: "fontGroupDecorative" };
 
 // Card geometry in output pixels. The live card draws the same layout in
 // container-query units (100cqw = OUTPUT_WIDTH), so the preview and the PNG
@@ -305,47 +330,75 @@ function loadSelectedFonts() {
 async function selectFont(kind, fontId) {
   state[kind] = fontId;
   saveFont(kind, fontId);
+  updateFontSummary(kind);
   markPreviewStale();
   await loadSelectedFonts();
   if (state[kind] === fontId) updatePreview();
 }
 
+// The collapsed picker shows the current choice, written in that font.
+function updateFontSummary(kind) {
+  const font = findFont(state[kind]);
+  const current = document.getElementById(FONT_PICKERS[kind].currentId);
+  current.textContent = font.family || copy("fontDefault");
+  current.style.setProperty("--option-font", fontStack(font));
+}
+
 function renderFontOptions(kind) {
   const picker = FONT_PICKERS[kind];
-  const options = CARD_FONTS.map((font) => {
-    const option = document.createElement("label");
-    option.className = "font-option";
+  const groups = FONT_GROUPS.map((group) => {
+    const section = document.createElement("div");
+    section.className = "font-group";
 
-    const input = document.createElement("input");
-    input.type = "radio";
-    input.name = kind;
-    input.value = font.id;
-    input.checked = font.id === state[kind];
-    input.addEventListener("change", () => selectFont(kind, font.id));
+    const title = document.createElement("p");
+    title.className = "font-group-title";
+    title.dataset.i18n = FONT_GROUP_COPY[group];
+    title.textContent = copy(FONT_GROUP_COPY[group]);
 
-    const sample = document.createElement("span");
-    sample.className = "font-option-sample";
-    sample.setAttribute("aria-hidden", "true");
-    sample.style.setProperty("--option-font", fontStack(font));
-    sample.textContent = picker.sample;
+    const grid = document.createElement("div");
+    grid.className = "font-options";
+    grid.append(...CARD_FONTS.filter((font) => font.group === group).map((font) => createFontOption(kind, font)));
 
-    const name = document.createElement("span");
-    name.className = "font-option-name";
-    if (font.family) {
-      name.textContent = font.family;
-    } else {
-      name.dataset.i18n = "fontDefault";
-      name.textContent = copy("fontDefault");
-    }
-
-    const mark = document.createElement("span");
-    mark.className = "radio-mark";
-    mark.setAttribute("aria-hidden", "true");
-
-    option.append(input, sample, name, mark);
-    return option;
+    section.append(title, grid);
+    return section;
   });
-  document.getElementById(picker.containerId).replaceChildren(...options);
+  document.getElementById(picker.containerId).replaceChildren(...groups);
+  updateFontSummary(kind);
+}
+
+function createFontOption(kind, font) {
+  const picker = FONT_PICKERS[kind];
+  const option = document.createElement("label");
+  option.className = "font-option";
+
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.name = kind;
+  input.value = font.id;
+  input.checked = font.id === state[kind];
+  input.addEventListener("change", () => selectFont(kind, font.id));
+
+  const sample = document.createElement("span");
+  sample.className = "font-option-sample";
+  sample.setAttribute("aria-hidden", "true");
+  sample.style.setProperty("--option-font", fontStack(font));
+  sample.textContent = picker.sample;
+
+  const name = document.createElement("span");
+  name.className = "font-option-name";
+  if (font.family) {
+    name.textContent = font.family;
+  } else {
+    name.dataset.i18n = "fontDefault";
+    name.textContent = copy("fontDefault");
+  }
+
+  const mark = document.createElement("span");
+  mark.className = "radio-mark";
+  mark.setAttribute("aria-hidden", "true");
+
+  option.append(input, sample, name, mark);
+  return option;
 }
 
 function updatePhotoLabel() {
@@ -434,6 +487,7 @@ function updateInterfaceLanguage() {
 
   refs.descriptionCount.textContent = `${refs.eventDescription.value.length} / ${DESCRIPTION_LIMIT}`;
   updatePhotoLabel();
+  Object.keys(FONT_PICKERS).forEach(updateFontSummary);
   updatePreview();
 }
 
@@ -778,6 +832,13 @@ function fitSingleLine(ctx, text, maxWidth, startSize, minSize, fontWeight = 400
   ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
   while (size > minSize && ctx.measureText(text).width > maxWidth) {
     size -= 1;
+    ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
+  }
+  // Very long text in a very wide font (Lemonada, Kufam) can still overflow at
+  // the minimum size; scale it down just enough to fit.
+  const width = ctx.measureText(text).width;
+  if (width > maxWidth) {
+    size = Math.max(1, Math.floor((size * maxWidth) / width));
     ctx.font = `${fontWeight} ${size}px ${fontFamily}`;
   }
   return size;

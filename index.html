@@ -9,7 +9,7 @@
       content="منشئ دعوات لاروميوس: صمّم بطاقة دعوة عربية فاخرة ونزّلها كصورة عالية الدقة."
     />
     <title>Laromious Invitation Studio</title>
-    <link rel="stylesheet" href="styles.css?v=20261108-3" />
+    <link rel="stylesheet" href="styles.css?v=20261108-5" />
   </head>
   <body>
     <div class="app-shell">
@@ -226,16 +226,38 @@
                   </div>
                 </div>
 
-                <fieldset class="style-fieldset">
-                  <legend data-i18n="nameFontLabel">خط اسم المدعو</legend>
-                  <div class="font-options" id="nameFontOptions"></div>
-                </fieldset>
+                <details class="font-picker">
+                  <summary class="font-picker-summary">
+                    <span class="font-picker-text">
+                      <span class="font-picker-label" data-i18n="nameFontLabel">خط اسم المدعو</span>
+                      <span class="font-picker-current" id="nameFontCurrent">الافتراضي</span>
+                    </span>
+                    <svg class="font-picker-chevron" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </summary>
+                  <fieldset class="style-fieldset font-picker-body">
+                    <legend class="visually-hidden" data-i18n="nameFontLabel">خط اسم المدعو</legend>
+                    <div class="font-groups" id="nameFontOptions"></div>
+                  </fieldset>
+                </details>
 
-                <fieldset class="style-fieldset" aria-describedby="textFontHint">
-                  <legend data-i18n="textFontLabel">خط نص الدعوة</legend>
-                  <p class="field-hint font-hint" id="textFontHint" data-i18n="textFontHint">لرسالة الدعوة والعنوان وباقي النصوص في البطاقة.</p>
-                  <div class="font-options" id="textFontOptions"></div>
-                </fieldset>
+                <details class="font-picker">
+                  <summary class="font-picker-summary">
+                    <span class="font-picker-text">
+                      <span class="font-picker-label" data-i18n="textFontLabel">خط نص الدعوة</span>
+                      <span class="font-picker-current" id="textFontCurrent">الافتراضي</span>
+                    </span>
+                    <svg class="font-picker-chevron" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </summary>
+                  <fieldset class="style-fieldset font-picker-body" aria-describedby="textFontHint">
+                    <legend class="visually-hidden" data-i18n="textFontLabel">خط نص الدعوة</legend>
+                    <p class="field-hint font-hint" id="textFontHint" data-i18n="textFontHint">لرسالة الدعوة والعنوان وباقي النصوص في البطاقة.</p>
+                    <div class="font-groups" id="textFontOptions"></div>
+                  </fieldset>
+                </details>
 
                 <div class="editor-actions">
                   <button class="secondary-button preview-button" id="previewButton" type="button">
@@ -359,6 +381,6 @@
       </div>
     </div>
 
-    <script src="script.js?v=20261108-3"></script>
+    <script src="script.js?v=20261108-5"></script>
   </body>
 </html>
