@@ -9,7 +9,7 @@ import { computeLayout } from "../layout.js";
 export const classic = {
   id: "classic",
   copyKey: "designClassic",
-  photo: "assets/wood-room-enhanced.png",
+  photo: "assets/wood-wall.webp",
   thumbnail: "assets/designs/classic.webp",
   fonts: { name: null, text: null },
   livePreview: "markup",

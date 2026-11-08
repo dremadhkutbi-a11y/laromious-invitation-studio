@@ -29,8 +29,8 @@ card model, so switching keeps everything typed in.
 | Gallery | `js/card/designs/gallery.js` | Full-bleed photo, dark shade, cream and gold text | Aref Ruqaa name, Almarai text |
 | Navy Night | `js/card/designs/night.js` | Navy card, gold-framed photo, ruled details strip | El Messiri (name in 600) |
 
-Each design brings its own default photo; an uploaded photo stays across
-designs. The font pickers work the same in every design: a font picked by hand
+Every design starts from the same wall photo (`assets/wood-wall.webp`); a design
+can name its own in its module. An uploaded photo stays across designs. The font pickers work the same in every design: a font picked by hand
 always wins, and "Default" means the design's own font.
 
 To add a design: write a module exporting `{ id, copyKey, photo, thumbnail,
