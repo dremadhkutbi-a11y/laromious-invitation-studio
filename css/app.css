@@ -590,9 +590,83 @@ textarea:focus-visible {
 }
 
 .style-option:has(input:focus-visible),
-.font-option:has(input:focus-visible) {
+.font-option:has(input:focus-visible),
+.design-option:has(input:focus-visible) {
   outline: 3px solid rgba(176, 138, 35, 0.45);
   outline-offset: 2px;
+}
+
+/* Design picker: a picture of each whole card. */
+.design-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.design-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 8px 10px;
+  background: #fffefa;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.design-option:hover {
+  border-color: #b8b4ac;
+}
+
+.design-option:has(input:checked) {
+  background: #f7f0e3;
+  border-color: var(--gold);
+}
+
+.design-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.design-thumb {
+  grid-column: 1 / -1;
+  display: block;
+  width: min(100%, 112px);
+  aspect-ratio: 9 / 16;
+  justify-self: center;
+  object-fit: cover;
+  background: #e9e4da;
+  border-radius: 3px;
+  box-shadow: 0 1px 3px rgba(7, 31, 76, 0.18);
+}
+
+.design-name {
+  min-width: 0;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.design-option .radio-mark {
+  margin-inline-start: 0;
+}
+
+.design-option:has(input:checked) .radio-mark {
+  position: relative;
+  border-color: var(--gold);
+}
+
+.design-option:has(input:checked) .radio-mark::after {
+  position: absolute;
+  inset: 3px;
+  content: "";
+  background: var(--gold);
+  border-radius: inherit;
 }
 
 .visually-hidden {
@@ -1026,6 +1100,22 @@ textarea:focus-visible {
   box-shadow: 0 26px 54px rgba(0, 0, 0, 0.32);
   isolation: isolate;
   transform: translateZ(0);
+}
+
+/*
+ * A drawn design: the canvas keeps its own 9:16 proportions inside the card frame.
+ * Size containment would discard them, so the canvas is not a query container.
+ */
+.invitation-canvas {
+  display: block;
+  height: auto;
+  aspect-ratio: auto;
+  container-type: normal;
+  background: #071f4c;
+}
+
+.invitation-canvas[hidden] {
+  display: none;
 }
 
 .invitation-card.is-updating {

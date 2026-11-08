@@ -45,16 +45,29 @@ export function fitParagraph(ctx, text, { maxWidth, maxSize, minSize, maxLines, 
  * Text still too wide at minSize (a very long name in a very wide font) is
  * scaled down further, just enough to fit.
  */
-export function fitLine(ctx, text, { maxWidth, maxSize, minSize, family }) {
+export function fitLine(ctx, text, { maxWidth, maxSize, minSize, family, weight = 400 }) {
   let size = maxSize;
-  ctx.font = font(size, family);
+  ctx.font = font(size, family, weight);
   while (size > minSize && ctx.measureText(text).width > maxWidth) {
     size -= 1;
-    ctx.font = font(size, family);
+    ctx.font = font(size, family, weight);
   }
   const width = ctx.measureText(text).width;
   if (width > maxWidth) size = Math.max(1, Math.floor((size * maxWidth) / width));
   return size;
+}
+
+/**
+ * Largest size whose full wrap fits in maxHeight; at minSize, keeps as many lines as fit
+ * and ends the last with an ellipsis.
+ */
+export function fitToHeight(ctx, text, { maxWidth, maxSize, minSize, lineHeight, maxHeight, family }) {
+  for (let size = maxSize; size >= minSize; size -= 1) {
+    const lines = wrapWords(ctx, text, { maxWidth, size, family });
+    if (lines.length * size * lineHeight <= maxHeight) return { size, lines };
+  }
+  const maxLines = Math.max(1, Math.floor(maxHeight / (minSize * lineHeight)));
+  return { size: minSize, lines: wrapWords(ctx, text, { maxWidth, size: minSize, family, maxLines }) };
 }
 
 /** How far the drawn glyphs reach below the line's centre. */

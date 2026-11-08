@@ -1,8 +1,8 @@
 # Laromious Invitation Studio
 
-A branded invitation card generator for Laromious Boutique. Fill in the event,
-the guest's name and a photo, choose the fonts, and download a personalised
-Arabic invitation as a 1080 × 1920 PNG.
+A branded invitation card generator for Laromious Boutique. Pick a design, fill
+in the event, the guest's name and a photo, choose the fonts, and download a
+personalised Arabic invitation as a 1080 × 1920 PNG.
 
 Everything runs in the browser. Names, event details and photos never leave the
 device: there is no server, no build step and no dependency.
@@ -18,16 +18,37 @@ npm start            # python3 -m http.server 5173
 Then open <http://localhost:5173>. Opening `index.html` straight from disk does
 not work: browsers block ES modules on `file://`.
 
+## Designs
+
+The editor opens with a choice of three designs. Every design draws the same
+card model, so switching keeps everything typed in.
+
+| Design | Module | Look | Fonts on "Default" |
+| --- | --- | --- | --- |
+| Classic | `js/card/designs/classic.js` | Photo above, white body below | System Arabic fonts |
+| Gallery | `js/card/designs/gallery.js` | Full-bleed photo, dark shade, cream and gold text | Aref Ruqaa name, Almarai text |
+| Navy Night | `js/card/designs/night.js` | Navy card, gold-framed photo, ruled details strip | El Messiri (name in 600) |
+
+Each design brings its own default photo; an uploaded photo stays across
+designs. The font pickers work the same in every design: a font picked by hand
+always wins, and "Default" means the design's own font.
+
+To add a design: write a module exporting `{ id, copyKey, photo, thumbnail,
+fonts, render }` (see `js/card/designs/index.js`), add it to `DESIGNS`, name it
+in both locale files, add a thumbnail to `assets/designs/`, and add the module to
+the import map.
+
 ## How it works
 
-The editor state flows one way, through a single measured layout that both
-renderers share. That shared layout is why the live preview and the downloaded
-PNG always match, down to the line breaks.
+The editor state flows one way into the chosen design:
 
 ```
-form ─▶ state ─▶ buildCardModel ─▶ computeLayout ─┬─▶ live preview (DOM)
-                                                  └─▶ PNG export (canvas)
+form ─▶ state ─▶ buildCardModel ─▶ design ─┬─▶ live preview
+                                           └─▶ PNG export (canvas)
 ```
+
+The classic design previews as live markup. Its preview and PNG share a single
+measured layout, so they match down to the line breaks:
 
 | Stage | Module | Responsibility |
 | --- | --- | --- |
@@ -36,11 +57,15 @@ form ─▶ state ─▶ buildCardModel ─▶ computeLayout ─┬─▶ live p
 | Preview | `js/card/preview.js` | Writes the layout into the page as container-query units |
 | Export | `js/card/canvas.js` | Draws the same layout into the 1080 × 1920 canvas |
 
+Gallery and Navy Night are drawn only on canvas (`js/card/paint.js` holds the
+shared drawing primitives), and their preview is that same canvas, redrawn on
+every change, so it cannot drift from the download.
+
 All coordinates are pixels of the exported PNG, defined once in
 `js/card/geometry.js`. The preview converts them to `cqw` (100cqw = 1080px), so
 the card scales to any width without re-measuring.
 
-Text flows top to bottom. A tall name (some fonts draw deep tails) pushes the
+In the classic design, text flows top to bottom. A tall name (some fonts draw deep tails) pushes the
 title down; the title pushes the message; a long message pushes the details row,
 which never moves past the logo. The message shrinks to fit instead.
 
@@ -50,10 +75,11 @@ which never moves past the logo. The message shrinks to fit instead.
 index.html              Markup only; every visible string comes from js/i18n
 css/app.css             Interface and card styles
 css/fonts.css           @font-face rules for the self-hosted card fonts
-assets/                 Default photo, logo and fonts (each font folder holds its OFL licence)
+assets/                 Photos, logos, design thumbnails and fonts (each font folder holds its OFL licence)
 js/main.js              Entry point: state, events, review dialog, download
-js/card/                The card: geometry, model, text fitting, layout, both renderers
-js/editor/              Font pickers, photo upload, form validation
+js/card/                The card: geometry, model, text fitting, layout, preview, renderers
+js/card/designs/        One module per design, plus the registry
+js/editor/              Design and font pickers, photo upload, form validation
 js/fonts.js             The font catalogue, loading and remembered choices
 js/i18n/                Translation (ar.js holds every Arabic string in the app)
 js/lib/                 Date and time parsing, download file names (Arabic)
@@ -91,7 +117,7 @@ npm test
 
 Runs the unit tests with Node's built-in test runner (Node 20+). They cover
 date and time parsing in Latin and Arabic-Indic digits, Arabic AM/PM words, file
-naming and form validation.
+naming, form validation and how designs resolve their fonts.
 
 ## Publishing
 

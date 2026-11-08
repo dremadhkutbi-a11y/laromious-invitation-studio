@@ -1,16 +1,18 @@
 /**
- * Laromious Invitation Studio: builds a personalised Arabic invitation card
- * and downloads it as a 1080 × 1920 PNG, entirely in the browser.
+ * Laromious Invitation Studio: builds a personalised Arabic invitation card in
+ * the chosen design and downloads it as a 1080 × 1920 PNG, entirely in the browser.
  *
  * Data flow, one direction:
  *
- *   form ─▶ state ─▶ buildCardModel ─▶ computeLayout ─┬─▶ live preview (DOM)
- *                                                    └─▶ PNG export (canvas)
+ *   form ─▶ state ─▶ buildCardModel ─▶ design ─┬─▶ live preview (DOM, or the PNG itself)
+ *                                             └─▶ PNG export (canvas)
  */
-import { renderCardImage } from "./card/canvas.js";
+import { createCanvasPreview } from "./card/canvas-preview.js";
+import { designPreference, findDesign, resolveFontId, resolveWeight } from "./card/designs/index.js";
 import { computeLayout } from "./card/layout.js";
 import { buildCardModel } from "./card/model.js";
 import { createCardPreview } from "./card/preview.js";
+import { createDesignPicker } from "./editor/design-picker.js";
 import { createFontPicker } from "./editor/font-picker.js";
 import { createPhotoPicker } from "./editor/photo.js";
 import { FIELDS, validate, validateField } from "./editor/validation.js";
@@ -54,6 +56,7 @@ const ui = {
 };
 
 const state = {
+  design: designPreference.read(),
   eventTitle: "",
   eventDescription: "",
   eventDate: "",
@@ -65,6 +68,7 @@ const state = {
 };
 
 const preview = createCardPreview($("invitationPreview"));
+const canvasPreview = createCanvasPreview($("invitationCanvas"));
 const fieldErrors = new Map();
 /** Downloading unlocks once the finished card has been reviewed, and locks again on any edit. */
 let isReviewed = false;
@@ -72,20 +76,64 @@ let toastTimer;
 
 // ── Card ────────────────────────────────────────────────────────────────────
 
-function cardFonts() {
-  return { name: fontStack(findFont(state.nameFont)), text: fontStack(findFont(state.textFont)) };
+const currentDesign = () => findDesign(state.design);
+
+/** The fonts in use: each picker's choice, or the design's own while a picker is on "Default". */
+function activeFonts(design = currentDesign()) {
+  return {
+    name: findFont(resolveFontId(design, "name", state.nameFont)),
+    text: findFont(resolveFontId(design, "text", state.textFont)),
+  };
+}
+
+function loadCardFonts() {
+  const { name, text } = activeFonts();
+  return loadFonts(name, text);
+}
+
+/**
+ * A design's own image (such as a white logo), loaded once. Designs never draw the
+ * classic card's logo element, so the classic PNG cannot depend on what another
+ * design drew before it.
+ */
+const designImages = new Map();
+function designImage(source) {
+  if (!designImages.has(source)) {
+    const image = new Image();
+    image.addEventListener("load", redrawDrawnPreview);
+    image.src = source;
+    designImages.set(source, image);
+  }
+  return designImages.get(source);
 }
 
 function composeCard() {
-  const model = buildCardModel(state);
-  const fonts = cardFonts();
-  return { model, fonts, layout: computeLayout(model, fonts) };
+  const design = currentDesign();
+  const { name, text } = activeFonts(design);
+  return {
+    design,
+    model: buildCardModel(state),
+    fonts: { name: fontStack(name), text: fontStack(text), nameWeight: resolveWeight(design, "name", name) },
+    images: { photo: preview.photo, logo: design.logo ? designImage(design.logo) : preview.logo },
+  };
+}
+
+/** The classic design previews as live markup; the others as their drawn PNG. */
+const livePreview = () => (currentDesign().livePreview === "markup" ? preview : canvasPreview);
+
+/** A drawn card shows a newly loaded image only once redrawn. */
+function redrawDrawnPreview() {
+  if (livePreview() === canvasPreview) renderPreview();
 }
 
 function renderPreview() {
-  const { model, layout, fonts } = composeCard();
-  preview.render(model, layout, fonts);
-  preview.element.setAttribute("aria-label", `${state.eventTitle || t("previewTitle")} — ${state.guestName || t("previewGuest")}`);
+  const { design, ...card } = composeCard();
+  const live = livePreview();
+  preview.element.hidden = live !== preview;
+  canvasPreview.element.hidden = live !== canvasPreview;
+  if (live === preview) preview.render(card.model, computeLayout(card.model, card.fonts), card.fonts);
+  else canvasPreview.render(design, card);
+  live.element.setAttribute("aria-label", `${state.eventTitle || t("previewTitle")} — ${state.guestName || t("previewGuest")}`);
 }
 
 async function imagesReady(...images) {
@@ -102,8 +150,9 @@ function saveFile(blob, fileName) {
 }
 
 async function exportCard() {
-  await Promise.all([loadFonts(findFont(state.nameFont), findFont(state.textFont)), imagesReady(preview.photo, preview.logo)]);
-  const canvas = renderCardImage({ ...composeCard(), images: { photo: preview.photo, logo: preview.logo } });
+  const { design, ...card } = composeCard();
+  await Promise.all([loadCardFonts(), imagesReady(card.images.photo, card.images.logo)]);
+  const canvas = design.render(card);
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
   if (!blob) throw new Error("PNG encoding failed");
   saveFile(blob, invitationFileName(state.guestName));
@@ -185,7 +234,7 @@ function openReview() {
     return;
   }
   setReviewed(true);
-  ui.dialogStage.replaceChildren(preview.snapshot());
+  ui.dialogStage.replaceChildren(livePreview().snapshot());
   ui.dialog.showModal();
   requestAnimationFrame(() => ui.dialogClose.focus());
 }
@@ -285,6 +334,23 @@ const photoPicker = createPhotoPicker({
   onError: showToast,
 });
 
+preview.photo.addEventListener("load", redrawDrawnPreview);
+
+createDesignPicker({
+  container: $("designOptions"),
+  selected: state.design,
+  async onSelect(id) {
+    state.design = id;
+    designPreference.save(id);
+    setReviewed(false);
+    // Draw only once the design's fonts have loaded; a newer choice may win the race.
+    await loadCardFonts();
+    if (state.design !== id) return;
+    // Showing the design's photo redraws the card; otherwise redraw here.
+    if (!photoPicker.setDefault(currentDesign().photo)) cardChanged();
+  },
+});
+
 const fontPickers = Object.entries(FONT_ROLES).map(([role, { storageKey, sample }]) =>
   createFontPicker({
     name: role,
@@ -297,7 +363,7 @@ const fontPickers = Object.entries(FONT_ROLES).map(([role, { storageKey, sample 
       fontPreference.save(storageKey, id);
       setReviewed(false);
       // Measure only once the new font has loaded; a newer choice may win the race.
-      await loadFonts(findFont(id));
+      await loadCardFonts();
       if (state[role] === id) cardChanged();
     },
   }),
@@ -328,7 +394,8 @@ for (const button of document.querySelectorAll("[data-language]")) {
 
 ui.venueName.textContent = cardCopy.venue;
 updateCounter();
+photoPicker.setDefault(currentDesign().photo);
 applyLanguage(getLanguage());
 document.documentElement.classList.remove("is-booting");
 // The first render used fallback metrics if a saved web font was still loading.
-loadFonts(findFont(state.nameFont), findFont(state.textFont)).then(renderPreview);
+loadCardFonts().then(renderPreview);

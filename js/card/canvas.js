@@ -1,15 +1,7 @@
-/** Draws the card into a 1080 × 1920 canvas for download. */
+/** The classic design: photo above, white body below. Draws the PNG from the shared layout. */
 import { CARD, CENTER_X, COLORS, DESCRIPTION, DETAILS, GREETING, HERO, KICKER, LOGO, TITLE } from "./geometry.js";
+import { drawCover, drawLine } from "./paint.js";
 import { font } from "./text-fit.js";
-
-/** Scales an image to cover the box, keeping the focal point (0–1 on each axis) in view. */
-function drawCover(ctx, image, { x, y, width, height, focusX, focusY }) {
-  if (!image?.naturalWidth) return;
-  const scale = Math.max(width / image.naturalWidth, height / image.naturalHeight);
-  const drawnWidth = image.naturalWidth * scale;
-  const drawnHeight = image.naturalHeight * scale;
-  ctx.drawImage(image, x + (width - drawnWidth) * focusX, y + (height - drawnHeight) * focusY, drawnWidth, drawnHeight);
-}
 
 function drawHero(ctx, photo) {
   drawCover(ctx, photo, { x: 0, y: 0, width: CARD.width, height: HERO.height, focusX: HERO.focusX, focusY: HERO.focusY });
@@ -21,15 +13,6 @@ function drawHero(ctx, photo) {
   // clipping, because a clip changes how the browser resamples the photo.
   ctx.fillStyle = COLORS.paper;
   ctx.fillRect(0, HERO.height, CARD.width, CARD.height - HERO.height);
-}
-
-function drawLine(ctx, x1, y1, x2, y2, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(x1, y1);
-  ctx.lineTo(x2, y2);
-  ctx.stroke();
 }
 
 /**
