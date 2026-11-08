@@ -1,15 +1,36 @@
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="ar" dir="rtl" class="is-booting">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#071f4c" />
-    <meta
-      name="description"
-      content="منشئ دعوات لاروميوس: صمّم بطاقة دعوة عربية فاخرة ونزّلها كصورة عالية الدقة."
-    />
+    <meta name="description" content="Laromious Invitation Studio: design a personalised Arabic invitation card and download it as a high-resolution image." />
     <title>Laromious Invitation Studio</title>
-    <link rel="stylesheet" href="styles.css?v=20261104-5" />
+    <link rel="stylesheet" href="css/fonts.css?v=202611080346" />
+    <link rel="stylesheet" href="css/app.css?v=202611080346" />
+    <!-- Versions every module URL, so a new release never mixes with cached modules. Update with `npm run stamp`. -->
+    <script type="importmap">
+      {
+        "imports": {
+          "./js/card/canvas.js": "./js/card/canvas.js?v=202611080346",
+          "./js/card/geometry.js": "./js/card/geometry.js?v=202611080346",
+          "./js/card/layout.js": "./js/card/layout.js?v=202611080346",
+          "./js/card/model.js": "./js/card/model.js?v=202611080346",
+          "./js/card/preview.js": "./js/card/preview.js?v=202611080346",
+          "./js/card/text-fit.js": "./js/card/text-fit.js?v=202611080346",
+          "./js/editor/font-picker.js": "./js/editor/font-picker.js?v=202611080346",
+          "./js/editor/photo.js": "./js/editor/photo.js?v=202611080346",
+          "./js/editor/validation.js": "./js/editor/validation.js?v=202611080346",
+          "./js/fonts.js": "./js/fonts.js?v=202611080346",
+          "./js/i18n/ar.js": "./js/i18n/ar.js?v=202611080346",
+          "./js/i18n/en.js": "./js/i18n/en.js?v=202611080346",
+          "./js/i18n/index.js": "./js/i18n/index.js?v=202611080346",
+          "./js/lib/datetime.js": "./js/lib/datetime.js?v=202611080346",
+          "./js/lib/filename.js": "./js/lib/filename.js?v=202611080346"
+        }
+      }
+    </script>
+    <script type="module" src="js/main.js?v=202611080346"></script>
   </head>
   <body>
     <div class="app-shell">
@@ -18,7 +39,7 @@
           <span class="brand-mark" aria-hidden="true">L</span>
           <span class="brand-copy">
             <span class="brand-name">LAROMIOUS</span>
-            <span class="brand-subtitle" data-i18n="brandSubtitle">استوديو الدعوات</span>
+            <span class="brand-subtitle" data-i18n="brandSubtitle"></span>
           </span>
         </a>
 
@@ -28,11 +49,11 @@
               <path d="M12 3.5 19 6v5.2c0 4.4-2.8 7.8-7 9.3-4.2-1.5-7-4.9-7-9.3V6l7-2.5Z" />
               <path d="m9 12 2 2 4-4" />
             </svg>
-            <span data-i18n="localOnlyShort">محلي على جهازك</span>
+            <span data-i18n="localOnlyShort"></span>
           </span>
-          <div class="language-switch" role="group" aria-label="Language">
-            <button class="language-button is-active" type="button" data-language="ar">العربية</button>
-            <button class="language-button" type="button" data-language="en">English</button>
+          <div class="language-switch" role="group" data-i18n-label="languageSwitch">
+            <button class="language-button" type="button" data-language="ar" data-i18n-endonym="ar" lang="ar"></button>
+            <button class="language-button" type="button" data-language="en" data-i18n-endonym="en" lang="en"></button>
           </div>
         </div>
       </header>
@@ -40,10 +61,8 @@
       <main id="top" class="page-content">
         <section class="intro" aria-labelledby="pageTitle">
           <div class="intro-copy">
-            <h1 id="pageTitle" data-i18n="pageTitle">دعوة باسم ضيفك</h1>
-            <p class="intro-lead" data-i18n="introLead">
-              جهّز نسخة شخصية لكل مدعو، ثم احفظها كصورة جاهزة للإرسال.
-            </p>
+            <h1 id="pageTitle" data-i18n="pageTitle"></h1>
+            <p class="intro-lead" data-i18n="introLead"></p>
           </div>
           <div class="intro-detail" aria-hidden="true">
             <span class="detail-line"></span>
@@ -55,23 +74,19 @@
         <div class="studio-grid">
           <section class="editor-panel panel-surface" aria-labelledby="editorTitle">
             <div class="section-heading">
-              <div>
-                <h2 id="editorTitle" data-i18n="editorTitle">بيانات الدعوة</h2>
-              </div>
-              <span class="required-note"><span aria-hidden="true">*</span> <span data-i18n="requiredNote">مطلوب</span></span>
+              <h2 id="editorTitle" data-i18n="editorTitle"></h2>
+              <span class="required-note"><span aria-hidden="true">*</span> <span data-i18n="requiredNote"></span></span>
             </div>
 
             <form id="invitationForm" novalidate>
               <div class="form-stack">
                 <div class="field-group">
-                  <label for="eventTitle" data-i18n="eventTitleLabel">عنوان الفعالية</label>
+                  <label for="eventTitle" data-i18n="eventTitleLabel"></label>
                   <input
                     id="eventTitle"
-                    name="eventTitle"
                     type="text"
                     maxlength="90"
                     autocomplete="off"
-                    placeholder="مثال: أمسية إطلاق العطر الجديد"
                     data-i18n-placeholder="eventTitlePlaceholder"
                     aria-describedby="eventTitleError"
                     required
@@ -80,40 +95,36 @@
                 </div>
 
                 <div class="field-group">
-                  <label for="eventDescription" data-i18n="descriptionLabel">نص الدعوة</label>
+                  <label for="eventDescription" data-i18n="descriptionLabel"></label>
                   <textarea
                     id="eventDescription"
-                    name="eventDescription"
                     rows="4"
                     maxlength="360"
-                    placeholder="اكتب رسالة الدعوة هنا"
                     data-i18n-placeholder="descriptionPlaceholder"
                     aria-describedby="eventDescriptionHint eventDescriptionError"
                     required
                   ></textarea>
                   <div class="field-meta">
-                    <p class="field-hint" id="eventDescriptionHint" data-i18n="descriptionHint">يمكنك كتابة رسالة قصيرة أو فقرة أطول.</p>
-                    <span class="character-count" id="descriptionCount">0 / 360</span>
+                    <p class="field-hint" id="eventDescriptionHint" data-i18n="descriptionHint"></p>
+                    <span class="character-count" id="descriptionCount"></span>
                   </div>
                   <p class="field-error" id="eventDescriptionError" aria-live="polite"></p>
                 </div>
 
                 <div class="field-row">
                   <div class="field-group">
-                    <label for="eventDateText" data-i18n="dateLabel">التاريخ</label>
+                    <label for="eventDateText" data-i18n="dateLabel"></label>
                     <div class="input-with-action">
                       <input
                         id="eventDateText"
-                        name="eventDateText"
                         type="text"
                         inputmode="numeric"
                         autocomplete="off"
-                        placeholder="اليوم / الشهر / السنة"
                         data-i18n-placeholder="datePlaceholder"
                         aria-describedby="eventDateHint eventDateError"
                         required
                       />
-                      <button class="input-action" id="openDatePicker" type="button" aria-label="Open date picker">
+                      <button class="input-action" id="openDatePicker" type="button" data-i18n-label="pickerDateLabel">
                         <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                           <rect x="3.5" y="5" width="17" height="15" rx="2.5" />
                           <path d="M7.5 3.5v4M16.5 3.5v4M3.5 9.5h17" />
@@ -121,25 +132,22 @@
                       </button>
                       <input id="eventDatePicker" class="visually-hidden-picker" type="date" tabindex="-1" aria-hidden="true" />
                     </div>
-                    <p class="field-hint" id="eventDateHint" data-i18n="dateHint">ميلادي</p>
+                    <p class="field-hint" id="eventDateHint" data-i18n="dateHint"></p>
                     <p class="field-error" id="eventDateError" aria-live="polite"></p>
                   </div>
 
                   <div class="field-group">
-                    <label for="eventTimeText" data-i18n="timeLabel">الوقت</label>
+                    <label for="eventTimeText" data-i18n="timeLabel"></label>
                     <div class="input-with-action">
                       <input
                         id="eventTimeText"
-                        name="eventTimeText"
                         type="text"
-                        inputmode="text"
                         autocomplete="off"
-                        placeholder="مثال: ٧ مساءً"
                         data-i18n-placeholder="timePlaceholder"
                         aria-describedby="eventTimeHint eventTimeError"
                         required
                       />
-                      <button class="input-action" id="openTimePicker" type="button" aria-label="Open time picker">
+                      <button class="input-action" id="openTimePicker" type="button" data-i18n-label="pickerTimeLabel">
                         <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                           <circle cx="12" cy="12" r="8.5" />
                           <path d="M12 7.5v5l3.5 2" />
@@ -147,63 +155,115 @@
                       </button>
                       <input id="eventTimePicker" class="visually-hidden-picker" type="time" tabindex="-1" aria-hidden="true" />
                     </div>
-                    <p class="field-hint" id="eventTimeHint" data-i18n="timeHint">يظهر بصيغة ١٢ ساعة</p>
+                    <p class="field-hint" id="eventTimeHint" data-i18n="timeHint"></p>
                     <p class="field-error" id="eventTimeError" aria-live="polite"></p>
                   </div>
                 </div>
 
                 <div class="field-group fixed-field">
                   <div class="field-label-row">
-                    <label for="venueValue" data-i18n="venueLabel">المكان</label>
-                    <span class="fixed-badge" data-i18n="fixedBadge">ثابت</span>
+                    <span class="field-label" id="venueLabel" data-i18n="venueLabel"></span>
+                    <span class="fixed-badge" data-i18n="fixedBadge"></span>
                   </div>
-                  <div id="venueValue" class="fixed-value" aria-readonly="true">
+                  <p class="fixed-value" aria-labelledby="venueLabel">
                     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                       <path d="M12 20s6-5.2 6-10a6 6 0 1 0-12 0c0 4.8 6 10 6 10Z" />
                       <circle cx="12" cy="10" r="2" />
                     </svg>
-                    <span>بوتيك لاروميوس</span>
-                  </div>
+                    <span id="venueName" lang="ar"></span>
+                  </p>
                 </div>
 
-                <div class="field-group name-field">
-                  <label for="guestName" data-i18n="guestNameLabel">اسم المدعو</label>
+                <div class="field-group">
+                  <label for="guestName" data-i18n="guestNameLabel"></label>
                   <input
                     id="guestName"
-                    name="guestName"
                     type="text"
                     maxlength="80"
                     autocomplete="off"
-                    placeholder="اكتب اسم المدعو"
                     data-i18n-placeholder="guestNamePlaceholder"
                     aria-describedby="guestNameHint guestNameError"
                     required
                   />
-                  <p class="field-hint" id="guestNameHint" data-i18n="guestNameHint">يدعم العربية والإنجليزية والأسماء المختلطة.</p>
+                  <p class="field-hint" id="guestNameHint" data-i18n="guestNameHint"></p>
                   <p class="field-error" id="guestNameError" aria-live="polite"></p>
                 </div>
 
                 <fieldset class="style-fieldset">
-                  <legend data-i18n="nameStyleLabel">طريقة عرض الاسم</legend>
+                  <legend data-i18n="nameStyleLabel"></legend>
                   <div class="style-options">
                     <label class="style-option">
                       <input type="radio" name="nameStyle" value="standalone" checked />
                       <span class="style-option-content">
-                        <span class="style-option-title" data-i18n="styleStandalone">الاسم فقط</span>
-                        <span class="style-option-description" data-i18n="styleStandaloneHint">اسم بارز وهادئ في منتصف البطاقة</span>
+                        <span class="style-option-title" data-i18n="styleStandalone"></span>
+                        <span class="style-option-description" data-i18n="styleStandaloneHint"></span>
                       </span>
                       <span class="radio-mark" aria-hidden="true"></span>
                     </label>
                     <label class="style-option">
                       <input type="radio" name="nameStyle" value="greeting" />
                       <span class="style-option-content">
-                        <span class="style-option-title" data-i18n="styleGreeting">داخل تحية</span>
-                        <span class="style-option-description" data-i18n="styleGreetingHint">يظهر الاسم ضمن عبارة ترحيبية</span>
+                        <span class="style-option-title" data-i18n="styleGreeting"></span>
+                        <span class="style-option-description" data-i18n="styleGreetingHint"></span>
                       </span>
                       <span class="radio-mark" aria-hidden="true"></span>
                     </label>
                   </div>
                 </fieldset>
+
+                <div class="field-group">
+                  <span class="field-label" id="photoLabel" data-i18n="photoLabel"></span>
+                  <div class="photo-picker" role="group" aria-labelledby="photoLabel">
+                    <img class="photo-thumb" id="photoThumb" src="assets/wood-room-enhanced.png" alt="" />
+                    <div class="photo-copy">
+                      <p class="photo-name" id="photoName"></p>
+                      <p class="field-hint" id="photoHint" data-i18n="photoHint"></p>
+                    </div>
+                    <div class="photo-actions">
+                      <button class="secondary-button" id="photoUploadButton" type="button" aria-describedby="photoHint">
+                        <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                          <path d="M12 15.5v-11M7.5 8.5 12 4l4.5 4.5M5 19.5h14" />
+                        </svg>
+                        <span data-i18n="photoUpload"></span>
+                      </button>
+                      <button class="text-button" id="photoResetButton" type="button" data-i18n="photoReset" hidden></button>
+                    </div>
+                    <input id="photoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden />
+                  </div>
+                </div>
+
+                <details class="font-picker">
+                  <summary class="font-picker-summary">
+                    <span class="font-picker-text">
+                      <span class="font-picker-label" data-i18n="nameFontLabel"></span>
+                      <span class="font-picker-current" id="nameFontCurrent"></span>
+                    </span>
+                    <svg class="font-picker-chevron" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </summary>
+                  <fieldset class="style-fieldset font-picker-body">
+                    <legend class="visually-hidden" data-i18n="nameFontLabel"></legend>
+                    <div class="font-groups" id="nameFontOptions"></div>
+                  </fieldset>
+                </details>
+
+                <details class="font-picker">
+                  <summary class="font-picker-summary">
+                    <span class="font-picker-text">
+                      <span class="font-picker-label" data-i18n="textFontLabel"></span>
+                      <span class="font-picker-current" id="textFontCurrent"></span>
+                    </span>
+                    <svg class="font-picker-chevron" aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </summary>
+                  <fieldset class="style-fieldset font-picker-body" aria-describedby="textFontHint">
+                    <legend class="visually-hidden" data-i18n="textFontLabel"></legend>
+                    <p class="field-hint font-hint" id="textFontHint" data-i18n="textFontHint"></p>
+                    <div class="font-groups" id="textFontOptions"></div>
+                  </fieldset>
+                </details>
 
                 <div class="editor-actions">
                   <button class="secondary-button preview-button" id="previewButton" type="button">
@@ -211,20 +271,20 @@
                       <path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z" />
                       <circle cx="12" cy="12" r="2.5" />
                     </svg>
-                    <span data-i18n="previewButton">عرض البطاقة</span>
+                    <span data-i18n="previewButton"></span>
                   </button>
                   <button class="primary-button" id="downloadButton" type="submit" disabled aria-disabled="true">
                     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                       <path d="M12 3.5v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />
                     </svg>
-                    <span data-i18n="downloadButton">إنشاء وتنزيل الدعوة</span>
+                    <span data-i18n="downloadButton"></span>
                   </button>
                   <button class="secondary-button" id="resetButton" type="button">
                     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                       <path d="M5 7.5A8 8 0 1 1 4 13" />
                       <path d="M5 3.5v4h4" />
                     </svg>
-                    <span data-i18n="resetButton">إعادة تعيين</span>
+                    <span data-i18n="resetButton"></span>
                   </button>
                 </div>
 
@@ -233,60 +293,58 @@
                     <path d="M12 3.5 19 6v5.2c0 4.4-2.8 7.8-7 9.3-4.2-1.5-7-4.9-7-9.3V6l7-2.5Z" />
                     <path d="m9 12 2 2 4-4" />
                   </svg>
-                  <p data-i18n="privacyNote">تبقى بياناتك على جهازك فقط. لا يتم رفع الأسماء أو تفاصيل المناسبة إلى أي خادم.</p>
+                  <p data-i18n="privacyNote"></p>
                 </div>
               </div>
             </form>
           </section>
 
-          <section class="preview-panel" aria-labelledby="previewTitleHeading">
+          <section class="preview-panel" aria-labelledby="previewHeading">
             <div class="preview-heading">
-              <div>
-                <h2 id="previewTitleHeading" data-i18n="previewHeading">المعاينة</h2>
-              </div>
-              <span class="preview-status"><span class="status-dot"></span><span data-i18n="liveStatus">مباشرة</span></span>
+              <h2 id="previewHeading" data-i18n="previewHeading"></h2>
+              <span class="preview-status"><span class="status-dot"></span><span data-i18n="liveStatus"></span></span>
             </div>
 
             <div class="preview-stage">
-              <div class="invitation-card" id="invitationPreview" role="img" aria-label="Invitation preview">
+              <!-- The card is always Arabic; js/card/preview.js fills every [data-slot]. -->
+              <div class="invitation-card" id="invitationPreview" role="img" lang="ar" dir="rtl">
                 <div class="card-hero">
-                  <img class="hero-photo" src="assets/wood-room-enhanced.png" alt="" />
+                  <img class="hero-photo" data-slot="photo" src="assets/wood-room-enhanced.png" alt="" />
                   <div class="hero-tint"></div>
                 </div>
                 <div class="card-body">
-                  <div class="card-rule" aria-hidden="true"></div>
-                  <p class="card-kicker" data-card-text="kicker">دعوة خاصة</p>
-                  <h3 class="card-title is-placeholder" id="previewEventTitle">عنوان الدعوة</h3>
-                  <p class="card-description is-placeholder" id="previewDescription">اكتب رسالة الدعوة هنا</p>
+                  <p class="card-kicker" data-slot="kicker"></p>
+                  <h3 class="card-title" data-slot="title"></h3>
+                  <p class="card-description" data-slot="description"></p>
 
-                  <div class="invitee-block" id="previewInviteeBlock">
-                    <p class="invitee-prelude" id="previewInviteePrelude">إلى</p>
-                    <p class="invitee-name is-placeholder" id="previewGuestName">اسم المدعو</p>
-                    <p class="invitee-followup" id="previewInviteeFollowup"></p>
+                  <div class="invitee-block" data-slot="invitee">
+                    <p class="invitee-prelude" data-slot="prelude"></p>
+                    <p class="invitee-name" data-slot="guest-name"></p>
+                    <p class="invitee-followup" data-slot="followup"></p>
                   </div>
 
-                  <div class="event-details" aria-label="Event details">
-                    <div class="event-detail">
-                      <span class="event-detail-label" data-card-text="dateLabel">التاريخ</span>
-                      <span class="event-detail-value is-placeholder" id="previewDate">-- / -- / ----</span>
+                  <div class="event-details">
+                    <div class="event-detail" data-slot="detail">
+                      <span class="event-detail-label" data-slot="detail-label"></span>
+                      <span class="event-detail-value" data-slot="detail-value"></span>
                     </div>
-                    <div class="event-detail">
-                      <span class="event-detail-label" data-card-text="timeLabel">الوقت</span>
-                      <span class="event-detail-value is-placeholder" id="previewTime">--:--</span>
+                    <div class="event-detail" data-slot="detail">
+                      <span class="event-detail-label" data-slot="detail-label"></span>
+                      <span class="event-detail-value" data-slot="detail-value"></span>
                     </div>
-                    <div class="event-detail">
-                      <span class="event-detail-label" data-card-text="venueLabel">المكان</span>
-                      <span class="event-detail-value">بوتيك لاروميوس</span>
+                    <div class="event-detail" data-slot="detail">
+                      <span class="event-detail-label" data-slot="detail-label"></span>
+                      <span class="event-detail-value" data-slot="detail-value"></span>
                     </div>
                   </div>
 
                   <div class="logo-plaque">
-                    <img src="assets/laromious-logo-transparent.png" alt="Laromious Boutique" />
+                    <img data-slot="logo" src="assets/laromious-logo-transparent.png" alt="Laromious Boutique" />
                   </div>
                 </div>
               </div>
             </div>
-            <p class="preview-footnote" data-i18n="previewFootnote">سيتم تنزيل البطاقة بجودة 1080 × 1920 بكسل.</p>
+            <p class="preview-footnote" data-i18n="previewFootnote"></p>
           </section>
         </div>
       </main>
@@ -294,26 +352,24 @@
       <dialog class="preview-dialog" id="previewDialog" aria-labelledby="dialogTitle">
         <div class="dialog-shell">
           <div class="dialog-heading">
-            <div>
-              <h2 id="dialogTitle" data-i18n="dialogTitle">راجع البطاقة</h2>
-            </div>
-            <button class="dialog-close" id="closePreviewButton" type="button" aria-label="Close preview">
+            <h2 id="dialogTitle" data-i18n="dialogTitle"></h2>
+            <button class="dialog-close" id="closePreviewButton" type="button" data-i18n-label="dialogClose">
               <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                 <path d="m6 6 12 12M18 6 6 18" />
               </svg>
             </button>
           </div>
-          <p class="dialog-hint" data-i18n="dialogHint">راجع البطاقة بالحجم الكبير، ثم نزّل النسخة النهائية.</p>
+          <p class="dialog-hint" data-i18n="dialogHint"></p>
           <div class="dialog-preview-stage" id="dialogPreviewStage"></div>
           <div class="dialog-actions">
             <button class="secondary-button" id="dialogEditButton" type="button">
-              <span data-i18n="dialogEdit">العودة للتعديل</span>
+              <span data-i18n="dialogEdit"></span>
             </button>
             <button class="primary-button" id="dialogDownloadButton" type="button">
               <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
                 <path d="M12 3.5v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />
               </svg>
-              <span data-i18n="dialogDownload">تنزيل PNG</span>
+              <span data-i18n="dialogDownload"></span>
             </button>
           </div>
         </div>
@@ -326,7 +382,5 @@
         <span id="toastMessage"></span>
       </div>
     </div>
-
-    <script src="script.js?v=20261104-5"></script>
   </body>
 </html>

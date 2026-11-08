@@ -1,3 +1,8 @@
+/* Hidden until js/main.js has filled in the interface text, to avoid a flash of empty labels. */
+.is-booting body {
+  visibility: hidden;
+}
+
 :root {
   --navy: #071f4c;
   --navy-2: #0d2f66;
@@ -320,6 +325,7 @@ textarea:focus-visible {
 }
 
 .field-group > label,
+.field-label,
 .style-fieldset legend {
   display: block;
   margin-bottom: 7px;
@@ -463,7 +469,7 @@ textarea:focus-visible {
   margin-bottom: 8px;
 }
 
-.field-label-row label {
+.field-label-row .field-label {
   margin: 0;
 }
 
@@ -478,6 +484,7 @@ textarea:focus-visible {
 
 .fixed-value {
   display: flex;
+  margin: 0;
   align-items: center;
   gap: 8px;
   color: var(--navy);
@@ -573,12 +580,266 @@ textarea:focus-visible {
   border-color: var(--gold);
 }
 
-.style-option:has(input:checked) .radio-mark::after {
+.style-option:has(input:checked) .radio-mark::after,
+.font-option:has(input:checked) .radio-mark::after {
   position: absolute;
   inset: 3px;
   content: "";
   background: var(--gold);
   border-radius: inherit;
+}
+
+.style-option:has(input:focus-visible),
+.font-option:has(input:focus-visible) {
+  outline: 3px solid rgba(176, 138, 35, 0.45);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Each font list folds away behind its current choice; fonts inside a closed
+   list are not downloaded until it is opened. */
+.font-picker {
+  background: #fffefa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  transition: border-color 180ms ease;
+}
+
+.font-picker:hover,
+.font-picker[open] {
+  border-color: #b8b4ac;
+}
+
+.font-picker-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.font-picker-summary::-webkit-details-marker {
+  display: none;
+}
+
+.font-picker-summary:focus-visible {
+  outline: 3px solid rgba(176, 138, 35, 0.45);
+  outline-offset: 2px;
+}
+
+.font-picker-text {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 1px;
+  min-width: 0;
+}
+
+.font-picker-label {
+  color: #45515e;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.font-picker-current {
+  overflow: hidden;
+  color: var(--navy);
+  font-family: var(--option-font);
+  font-size: 18px;
+  line-height: 1.45;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.font-picker-chevron {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--navy);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+  transition: transform 180ms ease;
+}
+
+.font-picker[open] .font-picker-chevron {
+  transform: rotate(180deg);
+}
+
+.style-fieldset.font-picker-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid #ece5d9;
+}
+
+.font-hint {
+  margin: 10px 0 0;
+}
+
+.font-groups {
+  display: grid;
+  gap: 14px;
+  padding-top: 12px;
+}
+
+.font-group-title {
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.font-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 8px;
+}
+
+.font-option {
+  position: relative;
+  container-type: inline-size;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding: 20px 8px 10px;
+  text-align: center;
+  background: #fffefa;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+}
+
+.font-option:hover {
+  border-color: #b8b4ac;
+}
+
+.font-option:has(input:checked) {
+  background: #f7f0e3;
+  border-color: var(--gold);
+}
+
+.font-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.font-option-sample {
+  max-width: 100%;
+  color: var(--navy);
+  font-family: var(--option-font);
+  /* Scales with the tile so wide families (Alexandria, Lalezar) stay inside it. */
+  font-size: clamp(12px, 14cqi, 20px);
+  line-height: 1.45;
+  white-space: nowrap;
+}
+
+.font-option-name {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.font-option .radio-mark {
+  position: absolute;
+  top: 7px;
+  inset-inline-end: 7px;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+
+.font-option:has(input:checked) .radio-mark {
+  border-color: var(--gold);
+}
+
+.font-option:has(input:checked) .radio-mark::after {
+  inset: 2px;
+}
+
+.photo-picker {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  background: #fffefa;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.photo-thumb {
+  flex: 0 0 auto;
+  width: 54px;
+  height: 64px;
+  object-fit: cover;
+  object-position: center 40%;
+  background: #422719;
+  border-radius: 4px;
+}
+
+.photo-copy {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 2px;
+  min-width: 0;
+}
+
+.photo-name {
+  margin: 0;
+  overflow: hidden;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.photo-copy .field-hint {
+  margin: 0;
+}
+
+.photo-actions {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 4px;
+  justify-items: center;
+}
+
+.photo-actions .secondary-button {
+  min-height: 38px;
+  padding: 7px 13px;
+  font-size: 12px;
+}
+
+.text-button {
+  padding: 2px 4px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.text-button:hover {
+  color: var(--gold);
 }
 
 .editor-actions {
@@ -830,10 +1091,6 @@ textarea:focus-visible {
   object-fit: contain;
 }
 
-.card-rule {
-  display: none;
-}
-
 .card-kicker {
   position: absolute;
   top: 8.5%;
@@ -850,7 +1107,7 @@ textarea:focus-visible {
 
 .card-title {
   position: absolute;
-  top: 31%;
+  top: var(--title-top, 31%);
   left: 5%;
   width: 90%;
   max-width: none;
@@ -858,17 +1115,19 @@ textarea:focus-visible {
   margin: 0;
   color: #171717;
   font-family: var(--font-card);
-  font-size: 3.45cqw;
+  /* Size, position and line breaks come from script.js (computeCardLayout),
+     the same measurements the PNG export uses. */
+  font-size: var(--title-size, 3.45cqw);
   font-weight: 400;
   letter-spacing: -0.025em;
   line-height: 1.28;
   text-align: center;
-  overflow-wrap: anywhere;
+  white-space: pre;
 }
 
 .card-description {
   position: absolute;
-  top: 38.7%;
+  top: var(--description-top, 38.7%);
   left: 5%;
   width: 90%;
   max-width: none;
@@ -876,37 +1135,43 @@ textarea:focus-visible {
   margin: 0;
   color: #171717;
   font-family: var(--font-card);
-  font-size: 2.85cqw;
-  line-height: 1.5;
+  font-size: var(--description-size, 2.85cqw);
+  line-height: 1.55;
   text-align: center;
-  overflow-wrap: anywhere;
+  white-space: pre;
 }
 
+/* Each invitee line is positioned by script.js (computeCardLayout) from the
+   measured name, so deep strokes are never clipped and match the PNG. */
 .invitee-block {
   position: absolute;
-  top: 13%;
-  left: 0;
-  width: 100%;
-  height: 15%;
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  min-height: 0;
+  inset: 0;
   margin: 0;
   padding: 0;
   border: 0;
 }
 
 .invitee-prelude,
+.invitee-name,
 .invitee-followup {
+  position: absolute;
+  inset-inline: 0;
   margin: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.invitee-prelude,
+.invitee-followup {
   color: #171717;
-  font-size: 2.35cqw;
+  font-size: 2.222cqw; /* 24px of the 1080px export */
   font-weight: 400;
+  line-height: 1.5;
 }
 
 .invitee-prelude {
   display: none;
+  top: var(--prelude-top, 13%);
 }
 
 .invitee-block.is-greeting .invitee-prelude {
@@ -914,23 +1179,18 @@ textarea:focus-visible {
 }
 
 .invitee-name {
-  max-width: 92%;
-  margin: 0.8% auto;
+  top: var(--name-top, 17%);
   color: #171717;
-  font-family: var(--font-card);
-  font-size: 6.25cqw;
+  font-family: var(--font-name, var(--font-card));
+  font-size: var(--name-size, 6.25cqw);
   font-weight: 400;
   letter-spacing: -0.018em;
-  line-height: 1.08;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  overflow-wrap: anywhere;
+  line-height: 1.2;
 }
 
 .invitee-followup {
   display: none;
+  top: var(--followup-top, 26%);
   color: #3d3d3d;
   font-weight: 500;
 }
@@ -941,7 +1201,7 @@ textarea:focus-visible {
 
 .event-details {
   position: absolute;
-  top: 48.9%;
+  top: var(--details-top, 48.9%);
   left: 8.6%;
   right: 8.6%;
   display: grid;
@@ -973,10 +1233,11 @@ textarea:focus-visible {
 
 .event-detail-value {
   color: #171717;
-  font-size: 2.35cqw;
+  /* Fitted per value by the shared layout, like the PNG. */
+  font-size: var(--value-size, 2.35cqw);
   font-weight: 400;
   line-height: 1.35;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .is-placeholder {
@@ -1271,6 +1532,22 @@ textarea:focus-visible {
 
   .style-options {
     grid-template-columns: 1fr;
+  }
+
+  .font-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+
+  .photo-picker {
+    flex-wrap: wrap;
+  }
+
+  .photo-actions {
+    grid-template-columns: auto auto;
+    align-items: center;
+    width: 100%;
+    justify-content: start;
   }
 
   .editor-actions {
