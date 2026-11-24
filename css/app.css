@@ -1428,8 +1428,10 @@ textarea:focus-visible {
 }
 
 .dialog-preview-stage {
+  --dialog-stage-height: min(68vh, 720px);
   display: grid;
-  max-height: min(68vh, 720px);
+  min-height: 0;
+  max-height: var(--dialog-stage-height);
   margin-top: 20px;
   padding: 22px;
   place-items: center;
@@ -1438,7 +1440,8 @@ textarea:focus-visible {
 }
 
 .dialog-preview-stage .invitation-card {
-  width: min(100%, 456px);
+  /* Keep the complete 9:16 invitation visible inside the modal. */
+  width: min(100%, 456px, calc((var(--dialog-stage-height) - 44px) * 0.5625));
   flex: 0 0 auto;
 }
 
@@ -1671,7 +1674,7 @@ textarea:focus-visible {
   }
 
   .dialog-preview-stage {
-    max-height: 62vh;
+    --dialog-stage-height: min(62vh, 560px);
     padding: 16px;
   }
 
