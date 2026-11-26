@@ -1623,6 +1623,19 @@ textarea:focus-visible {
     gap: 2px;
   }
 
+  /* Let the platform picker receive the tap directly on phones. */
+  .input-with-action .visually-hidden-picker {
+    top: 50%;
+    inset-inline-end: 4px;
+    z-index: 2;
+    width: 40px;
+    height: 40px;
+    opacity: 0.01;
+    cursor: pointer;
+    pointer-events: auto;
+    transform: translateY(-50%);
+  }
+
   .style-options {
     grid-template-columns: 1fr;
   }

@@ -286,7 +286,22 @@ function resetForm() {
 
 /** The native date/time pickers fill the matching text field in the interface language. */
 function bindNativePicker({ picker, openButton, field, format }) {
-  openButton.addEventListener("click", () => (picker.showPicker ? picker.showPicker() : picker.click()));
+  openButton.addEventListener("click", () => {
+    try {
+      picker.focus({ preventScroll: true });
+      if (typeof picker.showPicker === "function") {
+        picker.showPicker();
+        return;
+      }
+    } catch {
+      // Some mobile browsers expose showPicker but reject hidden controls.
+    }
+    try {
+      picker.click();
+    } catch {
+      // The overlaid native input remains available as the mobile fallback.
+    }
+  });
   picker.addEventListener("change", () => {
     ui.fields[field].value = format(picker.value, getLanguage());
     editField(field, picker.value);
