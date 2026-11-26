@@ -23,6 +23,9 @@ import { formatEditorDate, formatEditorTime } from "./lib/datetime.js";
 import { invitationFileName } from "./lib/filename.js";
 
 const TOAST_DURATION_MS = 4200;
+const FONT_LOAD_TIMEOUT_MS = 3500;
+const IMAGE_LOAD_TIMEOUT_MS = 3500;
+const PNG_EXPORT_TIMEOUT_MS = 12000;
 const ERROR_COPY = { required: "errorRequired", invalidDate: "errorDate", invalidTime: "errorTime" };
 const FONT_ROLES = {
   nameFont: { storageKey: "laromious.nameFont", sample: cardCopy.placeholders.guestName },
@@ -86,9 +89,20 @@ function activeFonts(design = currentDesign()) {
   };
 }
 
+function settleWithin(task, timeoutMs) {
+  let timer;
+  return Promise.race([
+    Promise.resolve(task),
+    new Promise((resolve) => {
+      timer = setTimeout(resolve, timeoutMs);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 function loadCardFonts() {
   const { name, text } = activeFonts();
-  return loadFonts(name, text);
+  // A blocked font request must never leave the export button waiting forever.
+  return settleWithin(loadFonts(name, text), FONT_LOAD_TIMEOUT_MS);
 }
 
 /**
@@ -137,7 +151,14 @@ function renderPreview() {
 }
 
 async function imagesReady(...images) {
-  await Promise.all(images.map((image) => (image.complete && image.naturalWidth ? null : image.decode().catch(() => {}))));
+  await Promise.all(images.map(async (image) => {
+    if (!image || (image.complete && image.naturalWidth)) return;
+    const ready = Promise.resolve().then(() => {
+      if (typeof image.decode === "function") return image.decode();
+      return new Promise((resolve) => image.addEventListener("load", resolve, { once: true }));
+    }).catch(() => {});
+    await settleWithin(ready, IMAGE_LOAD_TIMEOUT_MS);
+  }));
 }
 
 function saveFile(blob, fileName) {
@@ -153,13 +174,14 @@ async function exportCard() {
   const { design, ...card } = composeCard();
   await Promise.all([loadCardFonts(), imagesReady(card.images.photo, card.images.logo)]);
   const canvas = design.render(card);
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+  const blob = await settleWithin(new Promise((resolve) => canvas.toBlob(resolve, "image/png")), PNG_EXPORT_TIMEOUT_MS);
   if (!blob) throw new Error("PNG encoding failed");
   saveFile(blob, invitationFileName(state.guestName));
 }
 
 async function runExport(button, { closeDialog }) {
   button.disabled = true;
+  button.setAttribute("aria-busy", "true");
   try {
     await exportCard();
     showToast(t("downloadSuccess"));
@@ -168,6 +190,7 @@ async function runExport(button, { closeDialog }) {
     showToast(t("downloadError"));
   } finally {
     button.disabled = false;
+    button.removeAttribute("aria-busy");
   }
 }
 
