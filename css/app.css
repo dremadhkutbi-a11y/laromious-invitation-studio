@@ -1689,6 +1689,32 @@ textarea:focus-visible {
   }
 }
 
+/* Short phone screens need to reserve space for both review actions. */
+@media (max-height: 700px) {
+  .preview-dialog,
+  .dialog-shell {
+    max-height: calc(100vh - 32px);
+  }
+
+  .dialog-shell {
+    height: calc(100vh - 34px);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .dialog-preview-stage {
+    min-height: 0;
+    max-height: none;
+    height: auto;
+  }
+
+  .dialog-preview-stage .invitation-card {
+    width: auto;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
